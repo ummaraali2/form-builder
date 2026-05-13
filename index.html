@@ -761,7 +761,7 @@ function upGrid(id,f,i,v)  { const q=find(id); if(q) q[f][i]=v; }
 function upQType(id,t)     { const q=find(id); if(!q) return; q.type=t; q.correct=[]; q.answerText=''; reRenderAll(); }
 function addOpt(id)        { const q=find(id); if(q){q.options.push('Option '+(q.options.length+1)); reRenderAll();} }
 function rmOpt(id,i)       { const q=find(id); if(!q||q.options.length<=1) return; q.options.splice(i,1); q.correct=q.correct.filter(a=>a!==i).map(a=>a>i?a-1:a); reRenderAll(); }
-function setCorrect(id,i,checked,isMulti) { const q=find(id); if(!q) return; if(isMulti){if(checked&&!q.correct.includes(i))q.correct.push(i);else q.correct=q.correct.filter(a=>a!==i);}else{q.correct=checked?[i][];} }
+function setCorrect(id,i,checked,isMulti) { const q=find(id); if(!q) return; if(isMulti){if(checked&&!q.correct.includes(i))q.correct.push(i);else q.correct=q.correct.filter(a=>a!==i);}else{q.correct=checked?[i]:[];} }
 function addGrid(id,f)     { const q=find(id); if(q){const n=q[f].length+1; q[f].push(f==='rows'?'Row '+n:'Column '+n); reRenderAll();} }
 function rmGrid(id,f,i)    { const q=find(id); if(!q||q[f].length<=1) return; q[f].splice(i,1); reRenderAll(); }
 
