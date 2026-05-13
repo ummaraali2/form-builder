@@ -441,7 +441,7 @@ function parseQuestions(raw) {
         answerLine = line.replace(/^(?:answer|ans|key)\s*[:.]\s*/i, '').trim();
         continue;
       }
-      const m = line.match(/^([a-dA-D1-9])[.)]\s*(.*)/);
+      const m = line.match(/^([a-zA-Z]|\d+)[.)]\s*(.*)/);
       if (m) {
         let optText = m[2].trim();
         let correct = false;
@@ -454,10 +454,10 @@ function parseQuestions(raw) {
       }
     }
     if (answerLine && options.length > 0 && correctIdx.length === 0) {
-      // letter answer: Answer: b
-      const lm = answerLine.match(/^([a-d])\b/i);
+      // letter answer: Answer: b (supports any letter a-z)
+      const lm = answerLine.match(/^([a-z])\b/i);
       if (lm) {
-        const idx = 'abcd'.indexOf(lm[1].toLowerCase());
+        const idx = lm[1].toLowerCase().charCodeAt(0) - 'a'.charCodeAt(0);
         if (idx >= 0 && idx < options.length) correctIdx.push(idx);
       }
       // numbered answer: Answer: 1  (1-based)
@@ -478,6 +478,7 @@ function parseQuestions(raw) {
     const warnings = [];
     if (type !== 'SHORT_ANSWER' && correctIdx.length === 0) warnings.push('No correct answer marked');
     if (type === 'SHORT_ANSWER' && !answerText) warnings.push('No answer provided');
+    if (options.length > 20) warnings.push('Too many options — Google Forms allows a maximum of 20');
     questions.push({ id: id++, type, isTrueFalse, title: qText, required: true, options, correct: correctIdx, answerText, warnings });
   }
   return questions;
