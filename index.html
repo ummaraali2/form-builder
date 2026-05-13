@@ -1,0 +1,1031 @@
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║  GOOGLE FORM GENERATOR — ONE-TIME DEVELOPER SETUP               ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  1. Go to https://console.cloud.google.com                       ║
+║     → New Project → name it anything → Create                   ║
+║                                                                  ║
+║  2. APIs & Services → Library                                    ║
+║     → Enable "Google Forms API"                                  ║
+║     → Enable "Google Drive API"                                  ║
+║                                                                  ║
+║  3. APIs & Services → OAuth consent screen                       ║
+║     → External → Create                                          ║
+║     → Fill App name + support email → Save & Continue           ║
+║     → Scopes: skip → Save & Continue                             ║
+║     → Test users: add email addresses of people who will use     ║
+║       this app (up to 100, including yourself) → Save            ║
+║                                                                  ║
+║  4. APIs & Services → Credentials                                ║
+║     → + Create Credentials → OAuth 2.0 Client ID                ║
+║     → Application type: Web application                          ║
+║     → Authorized JavaScript origins:                             ║
+║         https://YOUR-USERNAME.github.io  (for GitHub Pages)     ║
+║         OR  https://YOUR-APP.vercel.app  (for Vercel)            ║
+║     → Create → Copy the Client ID                                ║
+║                                                                  ║
+║  5. Paste your Client ID on the line below:                      ║
+║     const CLIENT_ID = 'YOUR_CLIENT_ID_HERE';                     ║
+║                                                                  ║
+║  6. Deploy this file as index.html to GitHub Pages or Vercel     ║
+║     GitHub Pages: repo → Settings → Pages → main branch → /     ║
+║     Vercel: vercel.com → New → drag folder → done                ║
+║                                                                  ║
+║  That's it. Users just visit the URL and sign in with Google.    ║
+╚══════════════════════════════════════════════════════════════════╝
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Form Builder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <script src="https://accounts.google.com/gsi/client" async></script>
+  <style>
+    :root {
+      --purple:     #673ab7;
+      --purple-dk:  #4a148c;
+      --purple-lt:  #ede7f6;
+      --blue:       #1a73e8;
+      --green:      #0f9d58;
+      --text:       #202124;
+      --text2:      #5f6368;
+      --border:     #dadce0;
+      --bg:         #f0ebf8;
+      --shadow:     0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);
+      --shadow2:    0 2px 6px rgba(60,64,67,.3),0 1px 4px 2px rgba(60,64,67,.15);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+    /* ─── AUTH SCREEN ─── */
+    #auth-screen{
+      min-height:100vh;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      background:linear-gradient(135deg,#f3e5f5 0%,#e8eaf6 50%,#e3f2fd 100%);
+      padding:24px;
+    }
+    .auth-card{
+      background:#fff;border-radius:12px;padding:48px 40px;
+      box-shadow:0 4px 24px rgba(0,0,0,.12);
+      max-width:420px;width:100%;text-align:center;
+    }
+    .auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px;}
+    .auth-logo-text{font-size:22px;color:var(--text2);font-weight:400;}
+    .auth-title{font-size:26px;font-weight:400;color:var(--text);margin-bottom:10px;}
+    .auth-sub{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:36px;}
+    /* Official Google Sign-In button styling */
+    .google-btn{
+      display:inline-flex;align-items:center;gap:12px;
+      background:#fff;border:1px solid var(--border);border-radius:4px;
+      padding:0 16px;height:44px;cursor:pointer;
+      font-size:14px;font-weight:500;color:var(--text);
+      font-family:'Roboto',sans-serif;
+      box-shadow:0 1px 2px rgba(0,0,0,.1);
+      transition:box-shadow .15s,background .15s;
+      width:100%;justify-content:center;
+    }
+    .google-btn:hover{box-shadow:0 2px 6px rgba(0,0,0,.15);background:#f8f9fa;}
+    .google-btn:active{background:#f1f3f4;}
+    .google-btn:disabled{opacity:.6;cursor:not-allowed;}
+    .google-g{width:20px;height:20px;flex-shrink:0;}
+    .auth-footer{font-size:12px;color:var(--text2);margin-top:24px;line-height:1.6;}
+    .auth-footer a{color:var(--blue);text-decoration:none;}
+    .auth-footer a:hover{text-decoration:underline;}
+    .auth-error{
+      background:#fce8e6;border:1px solid #f5c6c2;color:#c62828;
+      padding:10px 14px;border-radius:4px;font-size:13px;
+      margin-top:16px;display:none;
+    }
+    .auth-error.show{display:block;}
+
+    /* ─── APP SCREEN ─── */
+    #app-screen{display:none}
+
+    /* ─── HEADER ─── */
+    .gf-header{
+      background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);
+      position:sticky;top:0;z-index:100;
+      height:64px;display:flex;align-items:center;padding:0 12px;gap:4px;
+    }
+    .gf-logo{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+    .gf-logo-text{font-size:18px;color:var(--text2);font-weight:400;white-space:nowrap;}
+    .hdr-tabs{display:flex;margin-left:12px;}
+    .hdr-tab{
+      padding:0 20px;height:64px;display:flex;align-items:center;
+      font-size:13px;font-weight:500;color:var(--text2);
+      border-bottom:3px solid transparent;cursor:pointer;
+      background:transparent;border-top:none;border-left:none;border-right:none;
+      font-family:'Roboto',sans-serif;transition:all .15s;
+    }
+    .hdr-tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+    .hdr-tab:hover:not(.active){background:rgba(0,0,0,.04);}
+    .hdr-actions{display:flex;align-items:center;gap:6px;}
+    .icon-btn{
+      width:40px;height:40px;border-radius:50%;border:none;
+      background:transparent;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      color:var(--text2);transition:background .15s;position:relative;
+    }
+    .icon-btn:hover{background:rgba(0,0,0,.06);}
+    .icon-btn .material-icons{font-size:22px;}
+    .icon-btn .tip{
+      position:absolute;top:44px;left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,.75);color:#fff;white-space:nowrap;
+      padding:4px 8px;border-radius:4px;font-size:11px;
+      pointer-events:none;opacity:0;transition:opacity .15s;
+    }
+    .icon-btn:hover .tip{opacity:1;}
+    /* User avatar in header */
+    .user-chip{
+      display:flex;align-items:center;gap:8px;
+      padding:4px 10px 4px 4px;border-radius:20px;cursor:pointer;
+      border:1px solid var(--border);background:#fff;
+      font-size:13px;color:var(--text);font-family:'Roboto',sans-serif;
+      transition:background .15s;position:relative;
+    }
+    .user-chip:hover{background:#f8f9fa;}
+    .user-avatar{
+      width:28px;height:28px;border-radius:50%;object-fit:cover;
+      background:var(--purple);display:flex;align-items:center;justify-content:center;
+      color:#fff;font-size:13px;font-weight:500;flex-shrink:0;overflow:hidden;
+    }
+    .user-avatar img{width:100%;height:100%;object-fit:cover;}
+    .user-name{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    /* Dropdown */
+    .user-dropdown{
+      position:absolute;top:44px;right:0;
+      background:#fff;border-radius:8px;
+      box-shadow:0 4px 16px rgba(0,0,0,.18);
+      min-width:200px;overflow:hidden;z-index:200;
+      display:none;
+    }
+    .user-dropdown.open{display:block;}
+    .user-dropdown-header{padding:16px;border-bottom:1px solid var(--border);}
+    .user-dropdown-email{font-size:13px;color:var(--text2);}
+    .user-dropdown-name{font-size:14px;font-weight:500;margin-bottom:2px;}
+    .user-dropdown-item{
+      display:flex;align-items:center;gap:10px;
+      padding:12px 16px;cursor:pointer;font-size:14px;
+      color:var(--text);transition:background .15s;border:none;
+      background:transparent;width:100%;font-family:'Roboto',sans-serif;
+    }
+    .user-dropdown-item:hover{background:#f8f9fa;}
+    .user-dropdown-item .material-icons{font-size:18px;color:var(--text2);}
+    .gen-btn-hdr{
+      background:var(--purple);color:#fff;border:none;
+      padding:0 20px;height:36px;border-radius:4px;margin-left:4px;
+      font-size:14px;font-weight:500;font-family:'Roboto',sans-serif;
+      cursor:pointer;transition:background .15s;
+    }
+    .gen-btn-hdr:hover:not(:disabled){background:var(--purple-dk);}
+    .gen-btn-hdr:disabled{opacity:.45;cursor:not-allowed;}
+
+    /* ─── LAYOUT ─── */
+    .page{
+      max-width:780px;margin:0 auto;
+      padding:24px 16px 90px;
+      display:grid;grid-template-columns:1fr 52px;gap:16px;align-items:start;
+    }
+    .form-col{display:flex;flex-direction:column;gap:12px;}
+
+    /* ─── CARDS ─── */
+    .gf-card{background:#fff;border-radius:8px;box-shadow:var(--shadow);overflow:hidden;}
+    .header-card{border-top:10px solid var(--purple);}
+    .header-card-body{padding:20px 24px 8px;}
+    .title-inp{
+      width:100%;border:none;outline:none;
+      font-size:28px;font-weight:400;color:var(--text);
+      border-bottom:2px solid transparent;
+      padding:4px 0;background:transparent;
+      font-family:'Roboto',sans-serif;transition:border-color .2s;
+    }
+    .title-inp:focus{border-bottom-color:var(--purple);}
+    .desc-inp{
+      width:100%;border:none;outline:none;
+      font-size:13px;color:var(--text2);
+      border-bottom:1px solid transparent;padding:8px 0;margin-top:8px;
+      font-family:'Roboto',sans-serif;background:transparent;
+      transition:border-color .2s;
+    }
+    .desc-inp:focus{border-bottom-color:var(--purple);}
+    .quiz-row{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 24px;border-top:1px solid var(--border);margin-top:12px;
+    }
+
+    /* ─── TOGGLE ─── */
+    .mtoggle{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0;}
+    .mtoggle input{opacity:0;width:0;height:0;position:absolute;}
+    .mtrack{position:absolute;inset:0;border-radius:20px;background:#bdbdbd;transition:background .2s;}
+    .mthumb{position:absolute;width:14px;height:14px;top:3px;left:3px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s;}
+    .mtoggle input:checked~.mtrack{background:#d1c4e9;}
+    .mtoggle input:checked~.mthumb{background:var(--purple);transform:translateX(16px);}
+
+    /* ─── QUESTION CARDS ─── */
+    .q-card{
+      background:#fff;border-radius:8px;box-shadow:var(--shadow);
+      border-left:6px solid transparent;transition:border-color .2s,box-shadow .15s;cursor:pointer;
+    }
+    .q-card:hover{box-shadow:var(--shadow2);}
+    .q-card.sel{border-left-color:var(--purple);cursor:default;}
+    .q-card-body{padding:20px 24px 0;}
+    .q-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;}
+    .q-title-wrap{flex:1;}
+    .q-inp{
+      width:100%;border:none;outline:none;font-size:15px;color:var(--text);
+      border-bottom:1px solid var(--border);padding:8px 10px;background:#f8f9fa;
+      font-family:'Roboto',sans-serif;border-radius:4px 4px 0 0;transition:border-color .2s,background .2s;
+    }
+    .q-inp:focus{border-bottom-color:var(--purple);background:var(--purple-lt);}
+    .q-type{
+      width:200px;flex-shrink:0;border:1px solid var(--border);border-radius:4px;
+      padding:8px 28px 8px 12px;font-size:13px;font-family:'Roboto',sans-serif;
+      color:var(--text);background:#fff;cursor:pointer;outline:none;appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f6368' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 10px center;transition:border-color .15s;
+    }
+    .q-type:focus{border-color:var(--purple);}
+
+    /* Options */
+    .opts-list{display:flex;flex-direction:column;}
+    .opt-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+    .opt-shape{width:18px;height:18px;flex-shrink:0;border:2px solid var(--text2);}
+    .opt-shape.circle{border-radius:50%;}
+    .opt-shape.square{border-radius:3px;}
+    .opt-text{
+      flex:1;border:none;outline:none;border-bottom:1px solid transparent;
+      padding:2px 0;font-size:14px;color:var(--text);background:transparent;
+      font-family:'Roboto',sans-serif;transition:border-color .15s;
+    }
+    .opt-text:focus{border-bottom-color:var(--purple);}
+    .opt-correct{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;}
+    .opt-label{font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap;}
+    .add-opt{
+      display:flex;align-items:center;gap:10px;padding:8px 0;
+      color:var(--text2);cursor:pointer;font-size:14px;
+      border:none;background:transparent;font-family:'Roboto',sans-serif;
+    }
+    .add-opt:hover{color:var(--purple);}
+    .opt-rm{
+      width:28px;height:28px;border-radius:50%;border:none;
+      background:transparent;cursor:pointer;color:var(--text2);
+      display:flex;align-items:center;justify-content:center;font-size:18px;
+    }
+    .opt-rm:hover{background:rgba(0,0,0,.06);}
+    .opt-rm:disabled{opacity:.3;cursor:default;}
+    .sa-preview{border-bottom:1px solid var(--border);padding:6px 0;font-size:14px;color:var(--text2);margin-bottom:8px;font-style:italic;}
+    .answer-inp{
+      width:100%;border:none;outline:none;border-bottom:1px solid var(--border);
+      padding:6px 0;font-size:14px;color:var(--text);font-family:'Roboto',sans-serif;
+      background:transparent;transition:border-color .15s;
+    }
+    .answer-inp:focus{border-bottom-color:var(--purple);}
+    .small-label{font-size:12px;color:var(--text2);margin-bottom:6px;display:block;}
+
+    /* Scale */
+    .scale-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+    .scale-sel{border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:13px;font-family:'Roboto',sans-serif;cursor:pointer;outline:none;background:#fff;}
+    .scale-sel:focus{border-color:var(--purple);}
+    .scale-labels{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .scale-label-inp{border:none;outline:none;border-bottom:1px solid var(--border);padding:4px 0;font-size:13px;font-family:'Roboto',sans-serif;background:transparent;width:100%;transition:border-color .15s;}
+    .scale-label-inp:focus{border-bottom-color:var(--purple);}
+
+    /* Grid */
+    .grid-ed{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:8px;}
+    .grid-sec-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+    .grid-r{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+    .grid-inp{flex:1;border:none;outline:none;border-bottom:1px solid var(--border);padding:4px 0;font-size:13px;font-family:'Roboto',sans-serif;background:transparent;transition:border-color .15s;}
+    .grid-inp:focus{border-bottom-color:var(--purple);}
+    .grid-rm{background:transparent;border:none;cursor:pointer;color:var(--text2);font-size:16px;padding:2px;line-height:1;}
+    .grid-add{font-size:13px;color:var(--purple);cursor:pointer;background:transparent;border:none;font-family:'Roboto',sans-serif;padding:2px 0;}
+    .grid-add:hover{text-decoration:underline;}
+
+    /* Card footer */
+    .q-footer{
+      display:flex;align-items:center;justify-content:flex-end;
+      padding:8px 16px;gap:4px;
+      border-top:1px solid var(--border);margin-top:16px;
+    }
+    .q-footer-btn{
+      width:36px;height:36px;border-radius:50%;border:none;
+      background:transparent;cursor:pointer;color:var(--text2);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .q-footer-btn:hover{background:rgba(0,0,0,.06);}
+    .q-footer-btn .material-icons{font-size:20px;}
+    .fdivider{width:1px;height:22px;background:var(--border);margin:0 6px;}
+    .req-row{display:flex;align-items:center;gap:8px;font-size:14px;}
+    .pts-badge{
+      display:inline-flex;align-items:center;gap:4px;
+      background:var(--purple-lt);color:var(--purple);
+      padding:3px 10px;border-radius:16px;font-size:12px;font-weight:500;
+      cursor:pointer;border:none;font-family:'Roboto',sans-serif;
+    }
+    .pts-badge:hover{background:#d1c4e9;}
+    .pts-pop{
+      position:absolute;background:#fff;border-radius:4px;
+      box-shadow:0 2px 10px rgba(0,0,0,.2);padding:16px;z-index:50;width:180px;
+    }
+    .pts-pop label{font-size:12px;color:var(--text2);display:block;margin-bottom:6px;}
+    .pts-inp{width:100%;border:none;outline:none;border-bottom:2px solid var(--border);padding:4px 0;font-size:16px;font-family:'Roboto',sans-serif;background:transparent;transition:border-color .15s;}
+    .pts-inp:focus{border-bottom-color:var(--purple);}
+
+    /* Chips */
+    .chip-warn{display:inline-flex;align-items:center;gap:6px;background:#fff3e0;border:1px solid #ffe0b2;color:#e65100;padding:6px 12px;border-radius:4px;font-size:12px;margin-top:8px;}
+
+    /* Right toolbar */
+    .right-col{position:sticky;top:80px;}
+    .rt{background:#fff;border-radius:8px;box-shadow:var(--shadow);padding:4px 0;display:flex;flex-direction:column;align-items:center;gap:2px;}
+    .rt-btn{
+      width:44px;height:44px;border-radius:50%;border:none;
+      background:transparent;cursor:pointer;color:var(--text2);
+      display:flex;align-items:center;justify-content:center;
+      transition:background .15s;position:relative;
+    }
+    .rt-btn:hover{background:rgba(103,58,183,.08);color:var(--purple);}
+    .rt-btn .material-icons{font-size:22px;}
+    .rt-btn .tip{
+      position:absolute;left:52px;top:50%;transform:translateY(-50%);
+      background:rgba(0,0,0,.75);color:#fff;white-space:nowrap;
+      padding:4px 8px;border-radius:4px;font-size:11px;
+      pointer-events:none;opacity:0;transition:opacity .15s;
+    }
+    .rt-btn:hover .tip{opacity:1;}
+    .rt-divider{width:28px;height:1px;background:var(--border);margin:2px 0;}
+
+    /* Generate bar */
+    .gen-bar{
+      position:fixed;bottom:0;left:0;right:0;
+      background:#fff;border-top:1px solid var(--border);
+      padding:12px 24px;display:flex;align-items:center;
+      justify-content:flex-end;gap:10px;z-index:80;
+    }
+    .gen-count{font-size:13px;color:var(--text2);}
+    .gen-btn{
+      background:var(--purple);color:#fff;border:none;
+      padding:0 28px;height:40px;border-radius:4px;
+      font-size:15px;font-weight:500;font-family:'Roboto',sans-serif;
+      cursor:pointer;transition:background .15s;
+      display:flex;align-items:center;gap:8px;
+    }
+    .gen-btn:hover:not(:disabled){background:var(--purple-dk);}
+    .gen-btn:disabled{opacity:.45;cursor:not-allowed;}
+
+    /* Overlays & modals */
+    .overlay{position:fixed;inset:0;background:rgba(255,255,255,.88);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;}
+    .overlay.show{display:flex;}
+    .mat-spin{width:48px;height:48px;border:4px solid #e0e0e0;border-top-color:var(--purple);border-radius:50%;animation:spin .75s linear infinite;margin-bottom:20px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .overlay-title{font-size:16px;font-weight:500;margin-bottom:6px;}
+    .overlay-sub{font-size:13px;color:var(--text2);}
+    .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:300;}
+    .modal-bd.show{display:flex;}
+    .modal{background:#fff;border-radius:8px;padding:32px;max-width:520px;width:92%;box-shadow:0 8px 40px rgba(0,0,0,.25);}
+    .modal-title{font-size:20px;font-weight:500;margin-bottom:8px;}
+    .modal-sub{font-size:14px;color:var(--text2);margin-bottom:24px;}
+    .modal-link-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+    .modal-link-box{background:#f8f9fa;border:1px solid var(--border);border-radius:4px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .modal-link-box a{flex:1;font-size:13px;color:var(--blue);text-decoration:none;word-break:break-all;}
+    .modal-link-box a:hover{text-decoration:underline;}
+    .copy-btn{padding:6px 14px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px;cursor:pointer;font-family:'Roboto',sans-serif;white-space:nowrap;flex-shrink:0;}
+    .copy-btn:hover{background:#f5f5f5;}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:24px;}
+    .mbtn-text{padding:0 16px;height:36px;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Roboto',sans-serif;border:none;background:transparent;color:var(--purple);}
+    .mbtn-text:hover{background:rgba(103,58,183,.06);}
+    .mbtn-fill{padding:0 20px;height:36px;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Roboto',sans-serif;border:none;background:var(--purple);color:#fff;}
+    .mbtn-fill:hover{background:var(--purple-dk);}
+
+    /* Toast */
+    #toast{position:fixed;bottom:68px;left:50%;transform:translateX(-50%) translateY(50px);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;font-size:14px;z-index:9999;transition:transform .25s;pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+    #toast.show{transform:translateX(-50%) translateY(0);}
+
+    @media(max-width:700px){
+      .page{grid-template-columns:1fr;}
+      .right-col{display:none;}
+      .q-type{width:160px;}
+      .hdr-tabs,.user-name{display:none;}
+      .auth-card{padding:32px 24px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="4" fill="#8430CE"/>
+        <rect x="8" y="9" width="16" height="2" rx="1" fill="white"/>
+        <rect x="8" y="14" width="12" height="2" rx="1" fill="white"/>
+        <rect x="8" y="19" width="8" height="2" rx="1" fill="white"/>
+        <circle cx="24" cy="24" r="6" fill="#34A853" stroke="white" stroke-width="1.5"/>
+        <path d="M21.5 24l1.5 1.5L26.5 22" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="auth-logo-text">Form Builder</span>
+    </div>
+
+    <div class="auth-title">Create Google Forms instantly</div>
+    <div class="auth-sub">
+      Build quizzes and forms with answer keys.<br/>
+      Forms are created directly in your Google account.
+    </div>
+
+    <button class="google-btn" id="signin-btn" onclick="signIn()">
+      <!-- Official Google G logo -->
+      <svg class="google-g" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <div class="auth-error" id="auth-error"></div>
+
+    <div class="auth-footer">
+      Forms are created in your own Google Drive.<br/>
+      <a href="https://developers.google.com/workspace/forms/api" target="_blank" rel="noopener">Google Forms API</a>
+      &bull; No data is stored by this app.
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP SCREEN ═══════════════════════════════════════════════ -->
+<div id="app-screen">
+
+  <header class="gf-header">
+    <div class="gf-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="4" fill="#8430CE"/>
+        <rect x="8" y="9" width="16" height="2" rx="1" fill="white"/>
+        <rect x="8" y="14" width="12" height="2" rx="1" fill="white"/>
+        <rect x="8" y="19" width="8" height="2" rx="1" fill="white"/>
+        <circle cx="24" cy="24" r="6" fill="#34A853" stroke="white" stroke-width="1.5"/>
+        <path d="M21.5 24l1.5 1.5L26.5 22" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="gf-logo-text">Form Builder</span>
+      <div class="hdr-tabs">
+        <button class="hdr-tab active">Questions</button>
+        <button class="hdr-tab">Responses</button>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <button class="icon-btn" id="preview-btn" title="Open form" onclick="if(S.formUrl)window.open(S.formUrl)">
+        <span class="material-icons">remove_red_eye</span>
+        <span class="tip">Preview</span>
+      </button>
+      <button class="gen-btn-hdr" id="gen-top-btn" disabled onclick="generate()">Generate Form</button>
+      <!-- User chip -->
+      <div class="user-chip" id="user-chip" onclick="toggleUserMenu()">
+        <div class="user-avatar" id="user-avatar-wrap">
+          <span id="user-initial">?</span>
+        </div>
+        <span class="user-name" id="user-name-hdr">Account</span>
+        <span class="material-icons" style="font-size:16px;color:var(--text2)">arrow_drop_down</span>
+        <div class="user-dropdown" id="user-dropdown">
+          <div class="user-dropdown-header">
+            <div class="user-dropdown-name" id="dd-name">—</div>
+            <div class="user-dropdown-email" id="dd-email">—</div>
+          </div>
+          <button class="user-dropdown-item" onclick="signOut()">
+            <span class="material-icons">logout</span>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="page">
+    <div class="form-col" id="form-col">
+      <div class="gf-card header-card">
+        <div class="header-card-body">
+          <input class="title-inp" id="f-title" type="text"
+            placeholder="Untitled form"
+            oninput="S.title=this.value;sync()"/>
+          <input class="desc-inp" id="f-desc" type="text"
+            placeholder="Form description"
+            oninput="S.description=this.value"/>
+        </div>
+        <div class="quiz-row">
+          <div>
+            <div style="font-size:14px;">Quiz mode</div>
+            <div style="font-size:12px;color:var(--text2);">Enable scoring and answer keys</div>
+          </div>
+          <label class="mtoggle">
+            <input type="checkbox" id="f-quiz" checked onchange="S.isQuiz=this.checked;reRenderAll()"/>
+            <div class="mtrack"></div><div class="mthumb"></div>
+          </label>
+        </div>
+      </div>
+      <div id="q-list"></div>
+      <div id="empty-state" style="text-align:center;padding:32px 20px;color:var(--text2);font-size:14px;">
+        Use the toolbar on the right to add your first question.
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="rt">
+        <button class="rt-btn" onclick="addQ('RADIO')"><span class="material-icons">add_circle_outline</span><span class="tip">Multiple choice</span></button>
+        <div class="rt-divider"></div>
+        <button class="rt-btn" onclick="addQ('SHORT_ANSWER')"><span class="material-icons">short_text</span><span class="tip">Short answer</span></button>
+        <button class="rt-btn" onclick="addQ('PARAGRAPH')"><span class="material-icons">notes</span><span class="tip">Paragraph</span></button>
+        <button class="rt-btn" onclick="addQ('CHECKBOX')"><span class="material-icons">check_box</span><span class="tip">Checkboxes</span></button>
+        <button class="rt-btn" onclick="addQ('DROP_DOWN')"><span class="material-icons">arrow_drop_down_circle</span><span class="tip">Dropdown</span></button>
+        <button class="rt-btn" onclick="addQ('SCALE')"><span class="material-icons">linear_scale</span><span class="tip">Linear scale</span></button>
+        <button class="rt-btn" onclick="addQ('GRID')"><span class="material-icons">grid_on</span><span class="tip">Choice grid</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gen-bar">
+    <span class="gen-count" id="gen-count">0 questions</span>
+    <button class="gen-btn" id="gen-btn" disabled onclick="generate()">
+      <span class="material-icons" style="font-size:18px;">auto_awesome</span>
+      Generate Form
+    </button>
+  </div>
+
+</div><!-- /app-screen -->
+
+<!-- ══ OVERLAYS ═════════════════════════════════════════════════ -->
+<div class="overlay" id="overlay">
+  <div class="mat-spin"></div>
+  <div class="overlay-title">Creating your form...</div>
+  <div class="overlay-sub" id="overlay-sub">Please wait...</div>
+</div>
+
+<!-- Success modal -->
+<div class="modal-bd" id="success-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <span class="material-icons" style="color:var(--green);font-size:32px;">check_circle</span>
+      <div class="modal-title" style="margin:0;">Form Created</div>
+    </div>
+    <div class="modal-sub">Your Google Form is live and ready to share.</div>
+    <div class="modal-link-label">Respondent Link</div>
+    <div class="modal-link-box">
+      <a id="resp-link" href="#" target="_blank" rel="noopener">&mdash;</a>
+      <button class="copy-btn" onclick="copyText(document.getElementById('resp-link').href,this)">Copy</button>
+    </div>
+    <div class="modal-link-label" style="margin-top:10px;">Edit in Google Forms</div>
+    <div class="modal-link-box">
+      <a id="edit-link" href="#" target="_blank" rel="noopener">&mdash;</a>
+      <button class="copy-btn" onclick="copyText(document.getElementById('edit-link').href,this)">Copy</button>
+    </div>
+    <div class="modal-actions">
+      <button class="mbtn-text" onclick="closeSuccess();startOver()">Create Another</button>
+      <a id="open-form-a" href="#" target="_blank" rel="noopener"><button class="mbtn-fill">Open Form</button></a>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══ SCRIPT ═══════════════════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════════════════════════
+   ★  PASTE YOUR CLIENT ID HERE  (one-time developer setup)
+   ════════════════════════════════════════════════════════════════ */
+const CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
+
+/* ── Scopes needed ── */
+const SCOPES = [
+  'https://www.googleapis.com/auth/forms.body',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/userinfo.profile',
+  'https://www.googleapis.com/auth/userinfo.email',
+].join(' ');
+
+/* ════════════════════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════════════════════ */
+const S = {
+  token: null, user: null,
+  title: '', description: '', isQuiz: true,
+  questions: [], nextId: 1, selQ: null,
+  formUrl: '', editUrl: '',
+};
+
+const Q_TYPES = [
+  {v:'RADIO',l:'Multiple choice'},{v:'CHECKBOX',l:'Checkboxes'},
+  {v:'DROP_DOWN',l:'Dropdown'},{v:'SHORT_ANSWER',l:'Short answer'},
+  {v:'PARAGRAPH',l:'Paragraph'},{v:'SCALE',l:'Linear scale'},
+  {v:'GRID',l:'Multiple choice grid'},{v:'CHECKBOX_GRID',l:'Checkbox grid'},
+];
+const IS_CHOICE = t => ['RADIO','CHECKBOX','DROP_DOWN'].includes(t);
+const IS_GRID   = t => ['GRID','CHECKBOX_GRID'].includes(t);
+const CAN_GRADE = t => ['RADIO','CHECKBOX','DROP_DOWN','SHORT_ANSWER'].includes(t);
+
+/* ════════════════════════════════════════════════════════════════
+   AUTH
+   ════════════════════════════════════════════════════════════════ */
+let tokenClient;
+
+window.addEventListener('load', () => {
+  if (!CLIENT_ID || CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    document.getElementById('auth-error').textContent =
+      '⚠ Developer: Open this file and set CLIENT_ID at the top of the script.';
+    document.getElementById('auth-error').classList.add('show');
+    document.getElementById('signin-btn').disabled = true;
+  }
+});
+
+function signIn() {
+  const btn = document.getElementById('signin-btn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (resp) => {
+        if (resp.error) {
+          showAuthError('Sign-in failed: ' + resp.error);
+          resetSignInBtn(); return;
+        }
+        S.token = resp.access_token;
+        await loadUserInfo();
+        showApp();
+      },
+      error_callback: (err) => {
+        if (err.type === 'popup_closed') { resetSignInBtn(); return; }
+        showAuthError('Error: ' + (err.message || err.type));
+        resetSignInBtn();
+      }
+    });
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
+  } catch (e) {
+    showAuthError('Could not initialize Google Sign-In. Make sure the page is served over HTTPS or from a registered origin.');
+    resetSignInBtn();
+  }
+}
+
+function resetSignInBtn() {
+  const btn = document.getElementById('signin-btn');
+  btn.disabled = false;
+  btn.innerHTML = `<svg class="google-g" viewBox="0 0 24 24">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>Sign in with Google`;
+}
+
+async function loadUserInfo() {
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: 'Bearer ' + S.token }
+    });
+    S.user = await r.json();
+  } catch { S.user = null; }
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  if (S.user) {
+    const name  = S.user.name || S.user.email || 'User';
+    const email = S.user.email || '';
+    const pic   = S.user.picture || '';
+    document.getElementById('user-name-hdr').textContent = S.user.given_name || name;
+    document.getElementById('dd-name').textContent = name;
+    document.getElementById('dd-email').textContent = email;
+    const wrap = document.getElementById('user-avatar-wrap');
+    if (pic) {
+      wrap.innerHTML = `<img src="${pic}" alt="${esc(name)}" referrerpolicy="no-referrer"/>`;
+    } else {
+      document.getElementById('user-initial').textContent = name[0].toUpperCase();
+    }
+  }
+  reRenderAll();
+}
+
+function signOut() {
+  google.accounts.oauth2.revoke(S.token, () => {});
+  S.token = null; S.user = null;
+  startOver();
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  resetSignInBtn();
+  hideUserMenu();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.classList.add('show');
+}
+
+/* User dropdown */
+function toggleUserMenu() {
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+function hideUserMenu() {
+  document.getElementById('user-dropdown').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  const chip = document.getElementById('user-chip');
+  if (chip && !chip.contains(e.target)) hideUserMenu();
+});
+
+/* ════════════════════════════════════════════════════════════════
+   QUESTION MANAGEMENT
+   ════════════════════════════════════════════════════════════════ */
+function mkQ(type='RADIO') {
+  return {
+    id:S.nextId++, type, title:'', required:true, points:1,
+    options:['Option 1','Option 2','Option 3'], correct:[],
+    answerText:'', scaleMin:1, scaleMax:5, scaleMinLabel:'', scaleMaxLabel:'',
+    rows:['Row 1','Row 2'], columns:['Column 1','Column 2'],
+  };
+}
+function find(id) { return S.questions.find(q=>q.id===id); }
+
+function addQ(type='RADIO') {
+  const q=mkQ(type); S.questions.push(q); S.selQ=q.id; reRenderAll();
+  setTimeout(()=>{ const el=document.getElementById('qcard-'+q.id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },80);
+}
+function delQ(id)  { S.questions=S.questions.filter(q=>q.id!==id); if(S.selQ===id) S.selQ=S.questions.length?S.questions[S.questions.length-1].id:null; reRenderAll(); }
+function dupQ(id)  { const i=S.questions.findIndex(q=>q.id===id); if(i<0) return; const c=JSON.parse(JSON.stringify(S.questions[i])); c.id=S.nextId++; S.questions.splice(i+1,0,c); S.selQ=c.id; reRenderAll(); }
+function selQ(id)  { S.selQ=id; reRenderAll(); }
+function upQ(id,k,v)       { const q=find(id); if(q) q[k]=v; }
+function upOpt(id,i,v)     { const q=find(id); if(q) q.options[i]=v; }
+function upGrid(id,f,i,v)  { const q=find(id); if(q) q[f][i]=v; }
+function upQType(id,t)     { const q=find(id); if(!q) return; q.type=t; q.correct=[]; q.answerText=''; reRenderAll(); }
+function addOpt(id)        { const q=find(id); if(q){q.options.push('Option '+(q.options.length+1)); reRenderAll();} }
+function rmOpt(id,i)       { const q=find(id); if(!q||q.options.length<=1) return; q.options.splice(i,1); q.correct=q.correct.filter(a=>a!==i).map(a=>a>i?a-1:a); reRenderAll(); }
+function setCorrect(id,i,checked,isMulti) { const q=find(id); if(!q) return; if(isMulti){if(checked&&!q.correct.includes(i))q.correct.push(i);else q.correct=q.correct.filter(a=>a!==i);}else{q.correct=checked?[i][];} }
+function addGrid(id,f)     { const q=find(id); if(q){const n=q[f].length+1; q[f].push(f==='rows'?'Row '+n:'Column '+n); reRenderAll();} }
+function rmGrid(id,f,i)    { const q=find(id); if(!q||q[f].length<=1) return; q[f].splice(i,1); reRenderAll(); }
+
+function editPts(id,badgeEl) {
+  if(document.getElementById('pts-pop')) return;
+  const q=find(id); if(!q) return;
+  const pop=document.createElement('div'); pop.className='pts-pop'; pop.id='pts-pop';
+  pop.style.cssText='bottom:'+(badgeEl.offsetHeight+6)+'px;left:0;';
+  pop.innerHTML=`<label>Point value</label>
+    <input class="pts-inp" type="number" min="0" max="999" value="${q.points}"
+      oninput="upQ(${id},'points',Math.max(0,parseInt(this.value)||0));
+        const lb=document.getElementById('pts-label-${id}');
+        if(lb){const v=Math.max(0,parseInt(this.value)||0);lb.textContent=v+' pt'+(v!==1?'s':'');}" />`;
+  badgeEl.parentElement.style.position='relative';
+  badgeEl.parentElement.appendChild(pop);
+  pop.querySelector('input').focus();
+  const close=e=>{ if(!pop.contains(e.target)&&e.target!==badgeEl){pop.remove();document.removeEventListener('mousedown',close);} };
+  setTimeout(()=>document.addEventListener('mousedown',close),50);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER
+   ════════════════════════════════════════════════════════════════ */
+function reRenderAll() {
+  const list=document.getElementById('q-list');
+  const empty=document.getElementById('empty-state');
+  if(!list) return;
+  list.innerHTML=S.questions.map((q,i)=>qCardHTML(q,i)).join('');
+  empty.style.display=S.questions.length?'none':'block';
+  sync();
+}
+
+function sync() {
+  const n=S.questions.length;
+  const countEl=document.getElementById('gen-count');
+  if(countEl) countEl.textContent=n+' question'+(n!==1?'s':'');
+  S.title=(document.getElementById('f-title')?.value||'').trim();
+  const ok=n>0&&S.title.length>0;
+  ['gen-btn','gen-top-btn'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!ok; });
+}
+
+function qCardHTML(q,i) {
+  const sel=S.selQ===q.id;
+  const typeLabel=Q_TYPES.find(t=>t.v===q.type)?.l||q.type;
+  const isChoice=IS_CHOICE(q.type), isGrid=IS_GRID(q.type), canGrade=CAN_GRADE(q.type), isMulti=q.type==='CHECKBOX';
+  let body='';
+
+  if(isChoice) {
+    const icon=q.type==='CHECKBOX'?'square':'circle';
+    body+=`<div class="opts-list">`;
+    q.options.forEach((opt,j)=>{
+      body+=`<div class="opt-row">
+        ${q.type==='DROP_DOWN'
+          ?`<span style="color:var(--text2);font-size:13px;min-width:18px;text-align:center;">${j+1}.</span>`
+          :`<div class="opt-shape ${icon}"></div>`}
+        <input class="opt-text" value="${esc(opt)}" placeholder="Option ${j+1}" onchange="upOpt(${q.id},${j},this.value)"/>
+        ${sel&&S.isQuiz&&canGrade
+          ?`<input type="${isMulti?'checkbox':'radio'}" class="opt-correct" name="c${q.id}"
+               ${isMulti?(q.correct.includes(j)?'checked':''):(q.correct[0]===j?'checked':'')}
+               onchange="setCorrect(${q.id},${j},this.checked,${isMulti})" title="Mark as correct"/>
+             <span class="opt-label">Correct</span>`:''}
+        ${sel?`<button class="opt-rm" onclick="rmOpt(${q.id},${j})" ${q.options.length<=1?'disabled':''}>&times;</button>`:''}
+      </div>`;
+    });
+    body+=`</div>`;
+    if(sel) body+=`<button class="add-opt" onclick="addOpt(${q.id})">
+      <div class="opt-shape ${q.type==='CHECKBOX'?'square':'circle'}"></div>Add option
+    </button>`;
+  }
+  if(q.type==='SHORT_ANSWER') {
+    body+=`<div class="sa-preview">Short answer text</div>`;
+    if(sel&&S.isQuiz) body+=`<span class="small-label">Correct answer (for grading)</span>
+      <input class="answer-inp" type="text" value="${esc(q.answerText)}" placeholder="Type expected answer"
+        onchange="upQ(${q.id},'answerText',this.value)"/>`;
+  }
+  if(q.type==='PARAGRAPH') {
+    body+=`<div class="sa-preview">Long answer text...</div>
+      ${sel?'<span class="chip-warn"><span class="material-icons" style="font-size:14px;">info</span>Paragraph questions cannot be auto-graded.</span>':''}`;
+  }
+  if(q.type==='SCALE') {
+    body+=`<div class="scale-row">
+      <span style="font-size:13px;color:var(--text2);">From</span>
+      <select class="scale-sel" onchange="upQ(${q.id},'scaleMin',parseInt(this.value));reRenderAll()">
+        <option value="0" ${q.scaleMin===0?'selected':''}>0</option>
+        <option value="1" ${q.scaleMin===1?'selected':''}>1</option>
+      </select>
+      <span style="font-size:13px;color:var(--text2);">to</span>
+      <select class="scale-sel" onchange="upQ(${q.id},'scaleMax',parseInt(this.value));reRenderAll()">
+        ${[2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}" ${q.scaleMax===n?'selected':''}>${n}</option>`).join('')}
+      </select>
+    </div>
+    <div class="scale-labels">
+      <div><span class="small-label">Min label</span>
+        <input class="scale-label-inp" type="text" value="${esc(q.scaleMinLabel)}" placeholder="e.g. Not at all" onchange="upQ(${q.id},'scaleMinLabel',this.value)"/></div>
+      <div><span class="small-label">Max label</span>
+        <input class="scale-label-inp" type="text" value="${esc(q.scaleMaxLabel)}" placeholder="e.g. Extremely" onchange="upQ(${q.id},'scaleMaxLabel',this.value)"/></div>
+    </div>
+    ${sel?'<span class="chip-warn"><span class="material-icons" style="font-size:14px;">info</span>Scale questions cannot be auto-graded.</span>':''}`;
+  }
+  if(isGrid) {
+    body+=`<div class="grid-ed">
+      <div><div class="grid-sec-title">Rows</div>
+        ${q.rows.map((r,ri)=>`<div class="grid-r">
+          <input class="grid-inp" type="text" value="${esc(r)}" placeholder="Row ${ri+1}" onchange="upGrid(${q.id},'rows',${ri},this.value)"/>
+          ${sel?`<button class="grid-rm" onclick="rmGrid(${q.id},'rows',${ri})" ${q.rows.length<=1?'disabled':''}>&times;</button>`:''}</div>`).join('')}
+        ${sel?`<button class="grid-add" onclick="addGrid(${q.id},'rows')">+ Add row</button>`:''}
+      </div>
+      <div><div class="grid-sec-title">Columns</div>
+        ${q.columns.map((c,ci)=>`<div class="grid-r">
+          <input class="grid-inp" type="text" value="${esc(c)}" placeholder="Col ${ci+1}" onchange="upGrid(${q.id},'columns',${ci},this.value)"/>
+          ${sel?`<button class="grid-rm" onclick="rmGrid(${q.id},'columns',${ci})" ${q.columns.length<=1?'disabled':''}>&times;</button>`:''}</div>`).join('')}
+        ${sel?`<button class="grid-add" onclick="addGrid(${q.id},'columns')">+ Add column</button>`:''}
+      </div>
+    </div>
+    ${sel?'<span class="chip-warn"><span class="material-icons" style="font-size:14px;">info</span>Grid questions cannot be auto-graded.</span>':''}`;
+  }
+
+  const footer=sel?`<div class="q-footer">
+    ${S.isQuiz&&canGrade?`<div style="position:relative;">
+      <button class="pts-badge" id="pts-badge-${q.id}" onclick="editPts(${q.id},this)">
+        <span class="material-icons" style="font-size:14px;">star</span>
+        <span id="pts-label-${q.id}">${q.points} pt${q.points!==1?'s':''}</span>
+      </button></div><div class="fdivider"></div>`:''}
+    <button class="q-footer-btn" onclick="dupQ(${q.id})" title="Duplicate"><span class="material-icons">content_copy</span></button>
+    <button class="q-footer-btn" onclick="delQ(${q.id})" title="Delete"><span class="material-icons">delete</span></button>
+    <div class="fdivider"></div>
+    <div class="req-row"><span>Required</span>
+      <label class="mtoggle">
+        <input type="checkbox" ${q.required?'checked':''} onchange="upQ(${q.id},'required',this.checked)"/>
+        <div class="mtrack"></div><div class="mthumb"></div>
+      </label>
+    </div>
+  </div>`:'';
+
+  const collapsed=!sel&&q.title?`<div style="font-size:13px;color:var(--text2);padding-bottom:16px;">${typeLabel}${S.isQuiz&&canGrade?` &bull; ${q.points} pt${q.points!==1?'s':''}`:''}${q.required?' &bull; Required':''}</div>`:'';
+
+  return `<div class="q-card ${sel?'sel':''}" id="qcard-${q.id}" onclick="${sel?'':'selQ('+q.id+')'}">
+    <div class="q-card-body">
+      <div class="q-top">
+        <div class="q-title-wrap">
+          <input class="q-inp" type="text" value="${esc(q.title)}" placeholder="Question"
+            onchange="upQ(${q.id},'title',this.value);sync()" onclick="event.stopPropagation()"/>
+        </div>
+        ${sel
+          ?`<select class="q-type" onchange="upQType(${q.id},this.value)" onclick="event.stopPropagation()">
+              ${Q_TYPES.map(t=>`<option value="${t.v}" ${q.type===t.v?'selected':''}>${t.l}</option>`).join('')}
+            </select>`
+          :`<span style="font-size:13px;color:var(--text2);padding-top:10px;white-space:nowrap;">${typeLabel}</span>`}
+      </div>
+      ${sel?body:collapsed}
+    </div>${footer}
+  </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GENERATE
+   ════════════════════════════════════════════════════════════════ */
+function validate() {
+  if(!S.title.trim()) return 'Please enter a form title.';
+  for(let i=0;i<S.questions.length;i++){
+    const q=S.questions[i],n=i+1;
+    if(!q.title.trim()) return `Question ${n} has no text.`;
+    if(IS_CHOICE(q.type)&&q.options.some(o=>!o.trim())) return `Question ${n} has a blank option.`;
+    if(IS_GRID(q.type)){
+      if(q.rows.some(r=>!r.trim())) return `Question ${n} has a blank row label.`;
+      if(q.columns.some(c=>!c.trim())) return `Question ${n} has a blank column label.`;
+    }
+  }
+  return null;
+}
+
+function generate() {
+  const err=validate(); if(err) return toast(err);
+  showOverlay('Building your form...');
+  // Re-use existing token if still valid, otherwise request silently
+  if(S.token) { createForm(); return; }
+  tokenClient.requestAccessToken({prompt:''});
+}
+
+async function createForm() {
+  try {
+    setOverlaySub('Creating form structure...');
+    const created=await api('POST','https://forms.googleapis.com/v1/forms',{
+      info:{title:S.title,documentTitle:S.title}
+    });
+    const fid=created.formId;
+    S.formUrl=created.responderUri;
+    S.editUrl=`https://docs.google.com/forms/d/${fid}/edit`;
+
+    setOverlaySub('Applying settings and questions...');
+    const reqs=[];
+    if(S.isQuiz) reqs.push({updateSettings:{settings:{quizSettings:{isQuiz:true}},updateMask:'quizSettings.isQuiz'}});
+    if(S.description) reqs.push({updateFormInfo:{info:{description:S.description},updateMask:'description'}});
+    S.questions.forEach((q,i)=>reqs.push(buildItem(q,i)));
+
+    await api('POST',`https://forms.googleapis.com/v1/forms/${fid}:batchUpdate`,{requests:reqs,includeFormInResponse:false});
+    hideOverlay();
+    showSuccess(S.formUrl,S.editUrl);
+  } catch(e) {
+    hideOverlay();
+    // If token expired, prompt re-auth
+    if(e.message&&e.message.includes('401')) { S.token=null; toast('Session expired. Please sign in again.'); signOut(); return; }
+    toast('Error: '+(e.message||'Unknown. Check console.'));
+    console.error(e);
+  }
+}
+
+function buildItem(q,index) {
+  if(IS_GRID(q.type)) return {createItem:{item:{title:q.title,questionGroupItem:{
+    questions:q.rows.filter(r=>r.trim()).map(row=>({required:q.required,rowQuestion:{title:row}})),
+    grid:{columns:{type:q.type==='GRID'?'RADIO':'CHECKBOX',options:q.columns.filter(c=>c.trim()).map(c=>({value:c}))},shuffleQuestions:false}
+  }},location:{index}}};
+  const qDef={required:q.required};
+  if(q.type==='SCALE') {
+    qDef.scaleQuestion={low:q.scaleMin,high:q.scaleMax,...(q.scaleMinLabel?{lowLabel:q.scaleMinLabel}:{}),...(q.scaleMaxLabel?{highLabel:q.scaleMaxLabel}:{})};
+  } else if(q.type==='PARAGRAPH') {
+    qDef.textQuestion={paragraph:true};
+  } else if(q.type==='SHORT_ANSWER') {
+    qDef.textQuestion={paragraph:false};
+    if(S.isQuiz&&q.answerText.trim()) qDef.grading={pointValue:q.points,correctAnswers:{answers:[{value:q.answerText.trim()}]}};
+  } else {
+    qDef.choiceQuestion={type:q.type,options:q.options.filter(o=>o.trim()).map(o=>({value:o})),shuffle:false};
+    if(S.isQuiz&&q.correct.length>0){
+      const vals=q.correct.map(i=>q.options[i]).filter(Boolean).map(v=>({value:v}));
+      if(vals.length) qDef.grading={pointValue:q.points,correctAnswers:{answers:vals}};
+    }
+  }
+  return {createItem:{item:{title:q.title,questionItem:{question:qDef}},location:{index}}};
+}
+
+async function api(method,url,body) {
+  const r=await fetch(url,{method,headers:{'Authorization':'Bearer '+S.token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.json().catch(()=>({})); throw new Error(`API ${r.status}: ${e?.error?.message||r.statusText}`);}
+  return r.json();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   UI HELPERS
+   ════════════════════════════════════════════════════════════════ */
+function showOverlay(msg){document.getElementById('overlay-sub').textContent=msg||'';document.getElementById('overlay').classList.add('show');}
+function hideOverlay(){document.getElementById('overlay').classList.remove('show');}
+function setOverlaySub(m){const el=document.getElementById('overlay-sub');if(el)el.textContent=m;}
+
+function showSuccess(ru,eu){
+  document.getElementById('resp-link').href=ru; document.getElementById('resp-link').textContent=ru;
+  document.getElementById('edit-link').href=eu; document.getElementById('edit-link').textContent=eu;
+  document.getElementById('open-form-a').href=ru;
+  document.getElementById('success-modal').classList.add('show');
+}
+function closeSuccess(){document.getElementById('success-modal').classList.remove('show');}
+document.getElementById('success-modal').addEventListener('click',function(e){if(e.target===this)closeSuccess();});
+
+function startOver(){
+  Object.assign(S,{title:'',description:'',isQuiz:true,questions:[],nextId:1,selQ:null,formUrl:'',editUrl:''});
+  const ft=document.getElementById('f-title'); if(ft) ft.value='';
+  const fd=document.getElementById('f-desc');  if(fd) fd.value='';
+  const fq=document.getElementById('f-quiz');  if(fq) fq.checked=true;
+  reRenderAll();
+}
+
+let _tt;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),4000);}
+function copyText(text,btn){navigator.clipboard.writeText(text).then(()=>{const o=btn.textContent;btn.textContent='Copied!';btn.disabled=true;setTimeout(()=>{btn.textContent=o;btn.disabled=false;},2200);});}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
