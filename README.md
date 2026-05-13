@@ -137,3 +137,18 @@ Go to Google Cloud Console → OAuth consent screen → Test users → Add users
 - [Google Identity Services](https://developers.google.com/identity/oauth2/web) for OAuth
 - [Google Forms API v1](https://developers.google.com/forms/api) for form creation
 - Hosted on Vercel (free tier)
+
+## License
+ 
+MIT — free to use, modify, and distribute.
+ 
+---
+ 
+## Contributing
+ 
+Found a bug or have a feature idea? [Open an issue](https://github.com/ummaraali2/form-builder/issues) — contributions welcome.
+ 
+---
+ 
+<p align="center">Built with vanilla JS · Powered by Google Forms API · Hosted on Vercel</p>
+ 
