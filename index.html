@@ -162,8 +162,8 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 .mbtn-t:hover{background:rgba(103,58,183,.06);}
 .mbtn-f{padding:0 20px;height:36px;border-radius:4px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Roboto',sans-serif;border:none;background:var(--purple);color:#fff;}
 .mbtn-f:hover{background:var(--purple-dk);}
-#toast{position:fixed;bottom:68px;left:50%;transform:translateX(-50%) translateY(50px);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;font-size:14px;z-index:9999;transition:transform .25s;pointer-events:none;white-space:nowrap;}
-#toast.show{transform:translateX(-50%) translateY(0);}
+#toast{position:fixed;bottom:68px;left:50%;transform:translateX(-50%) translateY(50px);background:#323232;color:#fff;padding:10px 18px;border-radius:4px;font-size:14px;z-index:9999;transition:transform .25s,opacity .25s;pointer-events:none;white-space:nowrap;opacity:0;}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
 </head>
 <body>
