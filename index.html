@@ -717,32 +717,68 @@ function toggleFmt() {
 
 /* ══ AUTH ══ */
 let tokenClient;
+let _tokenCb = null;
+
+function initTokenClient() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async resp => {
+      if (resp.error) { _tokenCb?.onError?.(resp.error); _tokenCb = null; return; }
+      S.token = resp.access_token;
+      _tokenCb?.onSuccess?.();
+      _tokenCb = null;
+    },
+    error_callback: err => {
+      if (err.type === 'popup_closed') { resetBtn(); _tokenCb = null; return; }
+      _tokenCb?.onError?.(err.message || err.type);
+      _tokenCb = null;
+    }
+  });
+}
+
 window.addEventListener('load', () => {
   if (!CLIENT_ID || CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
     document.getElementById('auth-error').textContent = 'Developer: set CLIENT_ID in the script.';
     document.getElementById('auth-error').classList.add('show');
     document.getElementById('signin-btn').disabled = true;
+    return;
+  }
+  // attempt silent restore if we have a saved hint
+  const hint = localStorage.getItem('fb_user_hint');
+  if (hint) {
+    try {
+      initTokenClient();
+      _tokenCb = {
+        onSuccess: async () => { await loadUser(); showApp(); },
+        onError: () => { /* silently fail — show sign-in screen */ }
+      };
+      tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
+    } catch(e) { /* ignore — GIS not loaded yet, user will sign in manually */ }
   }
 });
+
+function silentRefresh(onSuccess, onFail) {
+  try {
+    if (!tokenClient) initTokenClient();
+    _tokenCb = {
+      onSuccess: () => { onSuccess?.(); },
+      onError: () => { onFail?.(); }
+    };
+    const hint = localStorage.getItem('fb_user_hint') || S.user?.email || '';
+    tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
+  } catch(e) { onFail?.(); }
+}
 
 function signIn() {
   const btn = document.getElementById('signin-btn');
   btn.disabled = true; btn.textContent = 'Signing in...';
   try {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID, scope: SCOPES,
-      callback: async resp => {
-        if (resp.error) { showAuthErr('Sign-in failed: ' + resp.error); resetBtn(); return; }
-        S.token = resp.access_token;
-        await loadUser();
-        showApp();
-      },
-      error_callback: err => {
-        if (err.type === 'popup_closed') { resetBtn(); return; }
-        showAuthErr('Error: ' + (err.message || err.type));
-        resetBtn();
-      }
-    });
+    initTokenClient();
+    _tokenCb = {
+      onSuccess: async () => { await loadUser(); showApp(); },
+      onError: (err) => { showAuthErr('Sign-in failed: ' + err); resetBtn(); }
+    };
     tokenClient.requestAccessToken({ prompt: 'select_account' });
   } catch(e) {
     showAuthErr('Could not start Google Sign-In. Make sure the page is on HTTPS.');
@@ -774,6 +810,7 @@ function showApp() {
     const av = document.getElementById('uav');
     if (S.user.picture) av.innerHTML = `<img src="${S.user.picture}" referrerpolicy="no-referrer"/>`;
     else document.getElementById('uini').textContent = name[0].toUpperCase();
+    if (S.user.email) localStorage.setItem('fb_user_hint', S.user.email);
   }
   sync();
 }
@@ -781,6 +818,7 @@ function showApp() {
 function signOut() {
   google.accounts.oauth2.revoke(S.token, () => {});
   S.token = null; S.user = null;
+  localStorage.removeItem('fb_user_hint');
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
   resetBtn(); hideMenu();
@@ -832,7 +870,14 @@ async function createForm() {
     document.getElementById('success-modal').classList.add('show');
   } catch(e) {
     document.getElementById('overlay').classList.remove('show');
-    if (e.message?.includes('401')) { S.token = null; signOut(); toast('Session expired. Please sign in again.'); return; }
+    if (e.message?.includes('401')) {
+      toast('Session expired — refreshing...');
+      silentRefresh(
+        () => { document.getElementById('overlay').classList.add('show'); createForm(); },
+        () => { S.token = null; signOut(); toast('Session expired. Please sign in again.'); }
+      );
+      return;
+    }
     toast('Error: ' + (e.message || 'Unknown error'));
     console.error(e);
   }
