@@ -162,13 +162,13 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 .pq-warn{font-size:12px;color:var(--red);padding:0 16px 10px 52px;display:flex;align-items:center;gap:4px;}
 .pq-warn .material-icons{font-size:14px;}
 /* Insert button between cards */
-.pq-insert{display:flex;align-items:center;gap:8px;height:28px;opacity:0;transition:opacity .15s;cursor:pointer;}
+.pq-insert{display:flex;align-items:center;gap:8px;height:28px;opacity:0.3;transition:opacity .15s;cursor:pointer;}
 .pq-insert:hover{opacity:1;}
 .pq-insert-line{flex:1;height:1px;background:var(--purple);opacity:.4;}
 .pq-insert-btn{background:#fff;border:2px solid var(--purple);color:var(--purple);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;transition:background .15s,color .15s;}
 .pq-insert-btn:hover{background:var(--purple);color:#fff;}
 .pq-insert-btn .material-icons{font-size:14px;}
-.pq-insert-end{opacity:1;margin-top:4px;}
+.pq-insert-end{opacity:0.3;margin-top:4px;}
 /* Per-question footer */
 .pq-footer{display:flex;align-items:center;gap:16px;padding:8px 16px 10px 52px;border-top:1px solid #f1f3f4;}
 .pq-footer-item{display:flex;align-items:center;gap:8px;}
@@ -587,7 +587,12 @@ function renderPreview() {
     return;
   }
   const typeLabel = { RADIO: 'Multiple choice', CHECKBOX: 'Checkboxes', SHORT_ANSWER: 'Short answer' };
-  area.innerHTML = qs.map((q, i) => {
+  const insertBtnFirst = `<div class="pq-insert" onclick="insertQuestion(0)">
+    <div class="pq-insert-line"></div>
+    <button class="pq-insert-btn" title="Insert question at start"><span class="material-icons">add</span></button>
+    <div class="pq-insert-line"></div>
+  </div>`;
+  area.innerHTML = insertBtnFirst + qs.map((q, i) => {
     // ── EDIT MODE ──
     if (S.editingIdx === i && editState) {
       const optRows = editState.type !== 'SHORT_ANSWER' ? editState.options.map((o, j) => {
