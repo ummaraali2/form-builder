@@ -342,7 +342,11 @@ d) 5
 Answer: H2O"
 oninput="debounceParse()"
 ></textarea>
-<div style="display:flex;justify-content:flex-end;margin-top:10px;">
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+<button class="append-btn" onclick="clearPaste()" title="Clear the text area">
+<span class="material-icons" style="font-size:16px;">clear</span>
+Clear
+</button>
 <button class="append-btn" id="append-btn" onclick="appendQuestions()" title="Add these questions to existing ones">
 <span class="material-icons" style="font-size:16px;">add_circle_outline</span>
 Add to existing questions
@@ -741,6 +745,10 @@ async function api(method, url, body) {
   const r = await fetch(url, { method, headers: { 'Authorization': 'Bearer ' + S.token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(`API ${r.status}: ${e?.error?.message || r.statusText}`); }
   return r.json();
+}
+
+function clearPaste() {
+  document.getElementById('paste-area').value = '';
 }
 
 function appendQuestions() {
