@@ -129,6 +129,32 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 .pq-del{background:none;border:none;cursor:pointer;color:#ccc;padding:2px;border-radius:4px;display:flex;align-items:center;flex-shrink:0;margin-top:1px;}
 .pq-del:hover{background:#fce8e6;color:var(--red);}
 .pq-del .material-icons{font-size:16px;}
+.pq-edit-btn{background:none;border:none;cursor:pointer;color:#ccc;padding:2px;border-radius:4px;display:flex;align-items:center;flex-shrink:0;margin-top:1px;}
+.pq-edit-btn:hover{background:var(--purple-lt);color:var(--purple);}
+.pq-edit-btn .material-icons{font-size:16px;}
+/* Edit mode */
+.pq-editing{border-left-color:var(--blue);}
+.pq-edit-body{padding:16px 18px;}
+.pq-edit-field{margin-bottom:16px;}
+.pq-edit-field>label{display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.pq-edit-inp{width:100%;border:none;border-bottom:2px solid var(--border);padding:6px 0;font-size:14px;font-family:'Roboto',sans-serif;color:var(--text);background:transparent;outline:none;transition:border-color .2s;}
+.pq-edit-inp:focus{border-bottom-color:var(--purple);}
+.pq-edit-sel{border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:13px;font-family:'Roboto',sans-serif;color:var(--text);outline:none;background:#fff;cursor:pointer;}
+.pq-edit-sel:focus{border-color:var(--purple);}
+.pq-edit-opt-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.pq-edit-opt-inp{flex:1;border:none;border-bottom:1px solid var(--border);padding:4px 0;font-size:13px;font-family:'Roboto',sans-serif;color:var(--text);background:transparent;outline:none;transition:border-color .2s;}
+.pq-edit-opt-inp:focus{border-bottom-color:var(--purple);}
+.pq-edit-remove-opt{background:none;border:none;cursor:pointer;color:#ccc;padding:2px;display:flex;align-items:center;border-radius:4px;flex-shrink:0;}
+.pq-edit-remove-opt:hover{color:var(--red);background:#fce8e6;}
+.pq-edit-remove-opt .material-icons{font-size:16px;}
+.pq-edit-add-opt{display:flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--text2);font-size:13px;font-family:'Roboto',sans-serif;padding:4px 0;margin-top:4px;}
+.pq-edit-add-opt:hover{color:var(--purple);}
+.pq-edit-add-opt .material-icons{font-size:16px;}
+.pq-edit-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.pq-edit-cancel{padding:0 16px;height:34px;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Roboto',sans-serif;border:none;background:transparent;color:var(--text2);}
+.pq-edit-cancel:hover{background:#f1f3f4;}
+.pq-edit-save{padding:0 20px;height:34px;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Roboto',sans-serif;border:none;background:var(--purple);color:#fff;}
+.pq-edit-save:hover{background:var(--purple-dk);}
 .pq-opts{padding:0 16px 12px 52px;display:flex;flex-direction:column;gap:4px;}
 .pq-opt{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;}
 .pq-opt.ok{color:var(--green);font-weight:500;}
@@ -431,7 +457,8 @@ const SCOPES = [
 ].join(' ');
 
 // ── isRequired added to state (defaults true) ──
-const S = { token: null, user: null, isQuiz: true, isRequired: true, questions: [], formUrl: '', editUrl: '' };
+const S = { token: null, user: null, isQuiz: true, isRequired: true, editingIdx: null, questions: [], formUrl: '', editUrl: '' };
+let editState = null;
 
 /* ══ PARSER ══ */
 function parseQuestions(raw) {
@@ -541,6 +568,46 @@ function renderPreview() {
   }
   const typeLabel = { RADIO: 'Multiple choice', CHECKBOX: 'Checkboxes', SHORT_ANSWER: 'Short answer' };
   area.innerHTML = qs.map((q, i) => {
+    // ── EDIT MODE ──
+    if (S.editingIdx === i && editState) {
+      const optRows = editState.type !== 'SHORT_ANSWER' ? editState.options.map((o, j) => {
+        const checked = editState.correct.includes(j) ? 'checked' : '';
+        const inputType = editState.type === 'RADIO' ? 'radio' : 'checkbox';
+        return `<div class="pq-edit-opt-row">
+          <input type="${inputType}" name="edit-correct-${i}" ${checked} onchange="toggleEditCorrect(${j})"/>
+          <input class="pq-edit-opt-inp" value="${esc(o)}" oninput="editState.options[${j}]=this.value" placeholder="Option ${j+1}"/>
+          <button class="pq-edit-remove-opt" onclick="removeEditOption(${j})"><span class="material-icons">close</span></button>
+        </div>`;
+      }).join('') : '';
+      const answerField = editState.type === 'SHORT_ANSWER' ? `
+        <div class="pq-edit-field">
+          <label>Expected answer (optional)</label>
+          <input class="pq-edit-inp" value="${esc(editState.answerText||'')}" oninput="editState.answerText=this.value" placeholder="e.g. H2O"/>
+        </div>` : '';
+      const addOptBtn = editState.type !== 'SHORT_ANSWER' ? `<button class="pq-edit-add-opt" onclick="addEditOption()"><span class="material-icons">add</span>Add option</button>` : '';
+      return `<div class="pq pq-editing">
+<div class="pq-edit-body">
+  <div class="pq-edit-field">
+    <label>Question</label>
+    <input class="pq-edit-inp" value="${esc(editState.title)}" oninput="editState.title=this.value" placeholder="Question text"/>
+  </div>
+  <div class="pq-edit-field">
+    <label>Type</label>
+    <select class="pq-edit-sel" onchange="updateEditType(this.value)">
+      <option value="RADIO" ${editState.type==='RADIO'?'selected':''}>Multiple choice</option>
+      <option value="CHECKBOX" ${editState.type==='CHECKBOX'?'selected':''}>Checkboxes</option>
+      <option value="SHORT_ANSWER" ${editState.type==='SHORT_ANSWER'?'selected':''}>Short answer</option>
+    </select>
+  </div>
+  ${editState.type !== 'SHORT_ANSWER' ? `<div class="pq-edit-field"><label>Options ${editState.type==='RADIO'?'(select one correct)':'(select correct answers)'}</label>${optRows}${addOptBtn}</div>` : answerField}
+  <div class="pq-edit-actions">
+    <button class="pq-edit-cancel" onclick="cancelEdit()">Cancel</button>
+    <button class="pq-edit-save" onclick="saveEdit(${i})">Save</button>
+  </div>
+</div>
+</div>`;
+    }
+    // ── PREVIEW MODE ──
     const hasWarn = quiz && q.warnings.length > 0;
     const label = q.isTrueFalse ? 'True / False' : typeLabel[q.type];
     const meta = label + (quiz ? ` &bull; ${pts} pt${pts !== 1 ? 's' : ''}` : '');
@@ -569,6 +636,9 @@ function renderPreview() {
 <div class="pq-title">${esc(q.title)}</div>
 <div class="pq-sub">${meta}</div>
 </div>
+<button class="pq-edit-btn" onclick="editQuestion(${i})" title="Edit question">
+<span class="material-icons">edit</span>
+</button>
 <button class="pq-del" onclick="deleteQuestion(${i})" title="Remove question">
 <span class="material-icons">close</span>
 </button>
@@ -766,6 +836,75 @@ function appendQuestions() {
   toast(`${newQs.length} question${newQs.length !== 1 ? 's' : ''} added — ${S.questions.length} total.`);
 }
 
+/* ══ INLINE EDITING ══ */
+function editQuestion(idx) {
+  if (S.editingIdx !== null) saveEdit(S.editingIdx); // auto-save previous
+  editState = JSON.parse(JSON.stringify(S.questions[idx])); // deep copy
+  S.editingIdx = idx;
+  renderPreview();
+}
+
+function cancelEdit() {
+  S.editingIdx = null;
+  editState = null;
+  renderPreview();
+}
+
+function saveEdit(idx) {
+  if (!editState) return;
+  if (!editState.title.trim()) return toast('Question title cannot be empty.');
+  if (editState.type !== 'SHORT_ANSWER' && editState.options.length === 0) return toast('Add at least one option.');
+  // recalculate isTrueFalse
+  editState.isTrueFalse = editState.type === 'RADIO' && editState.options.length === 2 &&
+    editState.options.map(o => o.trim().toLowerCase()).sort().join('|') === 'false|true';
+  // recalculate warnings
+  editState.warnings = [];
+  if (editState.type !== 'SHORT_ANSWER' && editState.correct.length === 0) editState.warnings.push('No correct answer marked');
+  if (editState.type === 'SHORT_ANSWER' && !editState.answerText) editState.warnings.push('No answer provided');
+  if (editState.options.length > 20) editState.warnings.push('Too many options — Google Forms allows a maximum of 20');
+  S.questions[idx] = editState;
+  S.editingIdx = null;
+  editState = null;
+  renderPreview();
+  sync();
+  toast('Question saved.');
+}
+
+function updateEditType(val) {
+  if (!editState) return;
+  editState.type = val;
+  if (val === 'SHORT_ANSWER') { editState.options = []; editState.correct = []; }
+  else if (val === 'RADIO') { editState.correct = editState.correct.slice(0, 1); }
+  renderPreview();
+}
+
+function toggleEditCorrect(optIdx) {
+  if (!editState) return;
+  if (editState.type === 'RADIO') {
+    editState.correct = [optIdx];
+  } else {
+    const pos = editState.correct.indexOf(optIdx);
+    if (pos >= 0) editState.correct.splice(pos, 1);
+    else editState.correct.push(optIdx);
+  }
+  renderPreview();
+}
+
+function addEditOption() {
+  if (!editState) return;
+  if (editState.options.length >= 20) return toast('Maximum 20 options allowed.');
+  editState.options.push('');
+  renderPreview();
+}
+
+function removeEditOption(optIdx) {
+  if (!editState) return;
+  if (editState.options.length <= 1) return toast('At least one option is required.');
+  editState.options.splice(optIdx, 1);
+  editState.correct = editState.correct.filter(i => i !== optIdx).map(i => i > optIdx ? i - 1 : i);
+  renderPreview();
+}
+
 /* ══ DRAG & DROP + DELETE ══ */
 let dragSrcIdx = null;
 
@@ -811,7 +950,8 @@ function startOver() {
   document.getElementById('paste-area').value = '';
   document.getElementById('f-quiz').checked = true;
   document.getElementById('f-required').checked = true;
-  S.isQuiz = true; S.isRequired = true; S.questions = []; S.formUrl = ''; S.editUrl = '';
+  S.isQuiz = true; S.isRequired = true; S.editingIdx = null; S.questions = []; S.formUrl = ''; S.editUrl = '';
+  editState = null;
   renderPreview(); sync();
 }
 
