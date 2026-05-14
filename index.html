@@ -161,6 +161,26 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 .pq-opt .material-icons{font-size:14px;}
 .pq-warn{font-size:12px;color:var(--red);padding:0 16px 10px 52px;display:flex;align-items:center;gap:4px;}
 .pq-warn .material-icons{font-size:14px;}
+/* Insert button between cards */
+.pq-insert{display:flex;align-items:center;gap:8px;height:28px;opacity:0;transition:opacity .15s;cursor:pointer;}
+.pq-insert:hover{opacity:1;}
+.pq-insert-line{flex:1;height:1px;background:var(--purple);opacity:.4;}
+.pq-insert-btn{background:#fff;border:2px solid var(--purple);color:var(--purple);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;transition:background .15s,color .15s;}
+.pq-insert-btn:hover{background:var(--purple);color:#fff;}
+.pq-insert-btn .material-icons{font-size:14px;}
+.pq-insert-end{opacity:1;margin-top:4px;}
+/* Per-question footer */
+.pq-footer{display:flex;align-items:center;gap:16px;padding:8px 16px 10px 52px;border-top:1px solid #f1f3f4;}
+.pq-footer-item{display:flex;align-items:center;gap:8px;}
+.pq-footer-label{font-size:11px;color:var(--text2);}
+.pq-pts-inp{width:52px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:12px;font-family:'Roboto',sans-serif;color:var(--text);outline:none;text-align:center;}
+.pq-pts-inp:focus{border-color:var(--purple);}
+.mtoggle-sm{position:relative;width:30px;height:16px;cursor:pointer;flex-shrink:0;}
+.mtoggle-sm input{opacity:0;width:0;height:0;position:absolute;}
+.mtoggle-sm .mtrack{position:absolute;inset:0;border-radius:16px;background:#bdbdbd;transition:background .2s;}
+.mtoggle-sm .mthumb{position:absolute;width:11px;height:11px;top:2.5px;left:2.5px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s;}
+.mtoggle-sm input:checked~.mtrack{background:#d1c4e9;}
+.mtoggle-sm input:checked~.mthumb{background:var(--purple);transform:translateX(14px);}
 /* ── BOTTOM BAR ── */
 .gen-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;z-index:80;}
 .gen-bar-info{font-size:13px;color:var(--text2);}
@@ -304,7 +324,7 @@ Start Over
 <div style="font-size:12px;color:var(--text2);">All questions must be answered</div>
 </div>
 <label class="mtoggle">
-<input type="checkbox" id="f-required" checked onchange="S.isRequired=this.checked"/>
+<input type="checkbox" id="f-required" checked onchange="S.isRequired=this.checked;S.questions.forEach(q=>q.required=this.checked);renderPreview()"/>
 <div class="mtrack"></div><div class="mthumb"></div>
 </label>
 </div>
@@ -518,7 +538,7 @@ function parseQuestions(raw) {
     if (type !== 'SHORT_ANSWER' && correctIdx.length === 0) warnings.push('No correct answer marked');
     if (type === 'SHORT_ANSWER' && !answerText) warnings.push('No answer provided');
     if (options.length > 20) warnings.push('Too many options — Google Forms allows a maximum of 20');
-    questions.push({ id: id++, type, isTrueFalse, title: qText, required: true, options, correct: correctIdx, answerText, warnings });
+    questions.push({ id: id++, type, isTrueFalse, title: qText, required: true, points: null, options, correct: correctIdx, answerText, warnings });
   }
   return questions;
 }
@@ -610,7 +630,8 @@ function renderPreview() {
     // ── PREVIEW MODE ──
     const hasWarn = quiz && q.warnings.length > 0;
     const label = q.isTrueFalse ? 'True / False' : typeLabel[q.type];
-    const meta = label + (quiz ? ` &bull; ${pts} pt${pts !== 1 ? 's' : ''}` : '');
+    const qPts = q.points || pts;
+    const meta = label + (quiz ? ` &bull; ${qPts} pt${qPts !== 1 ? 's' : ''}` : '');
     let optsHtml = '';
     if (q.options.length) {
       optsHtml = `<div class="pq-opts">` + q.options.map((o, j) => {
@@ -626,6 +647,24 @@ function renderPreview() {
     const warnHtml = hasWarn
       ? q.warnings.map(w => `<div class="pq-warn"><span class="material-icons">warning</span>${w}</div>`).join('')
       : '';
+    const footerHtml = `<div class="pq-footer">
+      <div class="pq-footer-item">
+        <span class="pq-footer-label">Points</span>
+        <input type="number" class="pq-pts-inp" value="${q.points !== null ? q.points : ''}" placeholder="${pts}" min="1" max="999" oninput="setQuestionPoints(${i},this.value)" title="Override global points for this question"/>
+      </div>
+      <div class="pq-footer-item">
+        <span class="pq-footer-label">Required</span>
+        <label class="mtoggle-sm">
+          <input type="checkbox" ${q.required ? 'checked' : ''} onchange="setQuestionRequired(${i},this.checked)"/>
+          <div class="mtrack"></div><div class="mthumb"></div>
+        </label>
+      </div>
+    </div>`;
+    const insertBtn = `<div class="pq-insert" onclick="insertQuestion(${i + 1})">
+      <div class="pq-insert-line"></div>
+      <button class="pq-insert-btn" title="Insert question here"><span class="material-icons">add</span></button>
+      <div class="pq-insert-line"></div>
+    </div>`;
     return `<div class="pq ${hasWarn ? 'warn' : ''}" draggable="true"
       ondragstart="onDragStart(event,${i})" ondragend="onDragEnd(event)"
       ondragover="onDragOver(event,${i})" ondrop="onDrop(event,${i})">
@@ -643,9 +682,13 @@ function renderPreview() {
 <span class="material-icons">close</span>
 </button>
 </div>
-${optsHtml}${warnHtml}
-</div>`;
-  }).join('');
+${optsHtml}${warnHtml}${footerHtml}
+</div>${insertBtn}`;
+  }).join('') + `<div class="pq-insert pq-insert-end" onclick="insertQuestion(${qs.length})">
+    <div class="pq-insert-line"></div>
+    <button class="pq-insert-btn" title="Add question at end"><span class="material-icons">add</span></button>
+    <div class="pq-insert-line"></div>
+  </div>`;
 }
 
 function sync() {
@@ -790,8 +833,9 @@ async function createForm() {
   }
 }
 
-function buildItem(q, index, pts) {
-  const qDef = { required: S.isRequired };
+function buildItem(q, index, globalPts) {
+  const pts = q.points || globalPts;
+  const qDef = { required: q.required };
   if (q.type === 'SHORT_ANSWER') {
     qDef.textQuestion = { paragraph: false };
     if (S.isQuiz && q.answerText.trim()) {
@@ -836,6 +880,28 @@ function appendQuestions() {
   toast(`${newQs.length} question${newQs.length !== 1 ? 's' : ''} added — ${S.questions.length} total.`);
 }
 
+function insertQuestion(atIdx) {
+  const blank = {
+    id: Date.now(), type: 'RADIO', isTrueFalse: false,
+    title: '', required: S.isRequired, points: null,
+    options: ['', ''], correct: [], answerText: '', warnings: ['No correct answer marked']
+  };
+  S.questions.splice(atIdx, 0, blank);
+  S.editingIdx = atIdx;
+  editState = JSON.parse(JSON.stringify(blank));
+  renderPreview();
+  sync();
+}
+
+function setQuestionPoints(idx, val) {
+  const v = parseInt(val);
+  S.questions[idx].points = (v && v > 0) ? v : null;
+}
+
+function setQuestionRequired(idx, checked) {
+  S.questions[idx].required = checked;
+}
+
 /* ══ INLINE EDITING ══ */
 function editQuestion(idx) {
   if (S.editingIdx !== null) saveEdit(S.editingIdx); // auto-save previous
@@ -852,6 +918,7 @@ function cancelEdit() {
 
 function saveEdit(idx) {
   if (!editState) return;
+  if (!editState.hasOwnProperty('points')) editState.points = null;
   if (!editState.title.trim()) return toast('Question title cannot be empty.');
   if (editState.type !== 'SHORT_ANSWER' && editState.options.length === 0) return toast('Add at least one option.');
   // recalculate isTrueFalse
