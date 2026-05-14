@@ -747,14 +747,30 @@ window.addEventListener('load', () => {
   // attempt silent restore if we have a saved hint
   const hint = localStorage.getItem('fb_user_hint');
   if (hint) {
-    try {
-      initTokenClient();
-      _tokenCb = {
-        onSuccess: async () => { await loadUser(); showApp(); },
-        onError: () => { /* silently fail — show sign-in screen */ }
-      };
-      tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
-    } catch(e) { /* ignore — GIS not loaded yet, user will sign in manually */ }
+    // wait for GIS script to fully load before attempting silent refresh
+    const tryRestore = () => {
+      try {
+        initTokenClient();
+        _tokenCb = {
+          onSuccess: async () => { await loadUser(); showApp(); },
+          onError: () => { /* silently fail — show sign-in screen */ }
+        };
+        tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
+      } catch(e) { /* GIS not ready yet, user will sign in manually */ }
+    };
+    if (window.google?.accounts?.oauth2) {
+      tryRestore();
+    } else {
+      // GIS not loaded yet — wait for it
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.oauth2) {
+          clearInterval(interval);
+          tryRestore();
+        }
+      }, 100);
+      // give up after 5 seconds
+      setTimeout(() => clearInterval(interval), 5000);
+    }
   }
 });
 
