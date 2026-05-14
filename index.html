@@ -93,6 +93,8 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 .mtoggle input:checked~.mthumb{background:var(--purple);transform:translateX(16px);}
 /* ── PASTE ── */
 .section-label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.append-btn{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);border-radius:4px;padding:0 14px;height:34px;font-size:13px;font-weight:500;color:var(--text2);font-family:'Roboto',sans-serif;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+.append-btn:hover{background:var(--purple-lt);color:var(--purple);border-color:var(--purple);}
 .paste-area{width:100%;min-height:380px;border:2px solid var(--border);border-radius:8px;padding:14px;font-size:13px;line-height:1.8;font-family:'Roboto Mono',monospace;color:var(--text);background:#fafafa;resize:vertical;outline:none;transition:border-color .2s;}
 .paste-area:focus{border-color:var(--purple);background:#fff;}
 .paste-area::placeholder{color:#bbb;}
@@ -340,6 +342,12 @@ d) 5
 Answer: H2O"
 oninput="debounceParse()"
 ></textarea>
+<div style="display:flex;justify-content:flex-end;margin-top:10px;">
+<button class="append-btn" id="append-btn" onclick="appendQuestions()" title="Add these questions to existing ones">
+<span class="material-icons" style="font-size:16px;">add_circle_outline</span>
+Add to existing questions
+</button>
+</div>
 </div>
 </div>
 </div>
@@ -717,6 +725,21 @@ async function api(method, url, body) {
   const r = await fetch(url, { method, headers: { 'Authorization': 'Bearer ' + S.token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(`API ${r.status}: ${e?.error?.message || r.statusText}`); }
   return r.json();
+}
+
+function appendQuestions() {
+  const raw = document.getElementById('paste-area').value;
+  if (!raw.trim()) return toast('Nothing to add — paste some questions first.');
+  const newQs = parseQuestions(raw);
+  if (!newQs.length) return toast('No questions found. Check the format guide.');
+  // Re-number new questions continuing from existing
+  const offset = S.questions.length;
+  newQs.forEach((q, i) => q.id = offset + i + 1);
+  S.questions = S.questions.concat(newQs);
+  document.getElementById('paste-area').value = '';
+  renderPreview();
+  sync();
+  toast(`${newQs.length} question${newQs.length !== 1 ? 's' : ''} added — ${S.questions.length} total.`);
 }
 
 /* ══ DRAG & DROP + DELETE ══ */
