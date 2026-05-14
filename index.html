@@ -497,9 +497,25 @@ let parseTimer;
 function debounceParse() {
   clearTimeout(parseTimer);
   parseTimer = setTimeout(() => {
-    S.questions = parseQuestions(document.getElementById('paste-area').value);
-    renderPreview();
-    sync();
+    const raw = document.getElementById('paste-area').value;
+    // Only replace S.questions if there are no existing questions yet
+    // If questions exist, just show a pending preview without touching S.questions
+    if (S.questions.length === 0) {
+      S.questions = parseQuestions(raw);
+      renderPreview();
+      sync();
+    } else {
+      // Show pending questions count hint in bar info
+      const pending = parseQuestions(raw);
+      const info = document.getElementById('bar-info');
+      const n = S.questions.length;
+      const title = (document.getElementById('f-title')?.value || '').trim();
+      if (pending.length > 0) {
+        info.textContent = `${n} question${n !== 1 ? 's' : ''} in list · ${pending.length} pending — click "Add to existing" or clear to start over.`;
+      } else {
+        info.textContent = n > 0 && title ? `${n} question${n !== 1 ? 's' : ''} ready — click Generate Form.` : !title ? 'Add a form title to continue.' : 'Paste questions on the left.';
+      }
+    }
   }, 280);
 }
 
