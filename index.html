@@ -464,6 +464,57 @@ Generate Form
 
 <div id="toast"></div>
 
+<!-- WHAT'S NEW MODAL -->
+<div class="modal-bd" id="whats-new-modal">
+<div class="modal" style="max-width:480px;">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+<span class="material-icons" style="color:var(--purple);font-size:32px;">auto_awesome</span>
+<div class="modal-title" style="margin:0;">What's new in Form Builder</div>
+</div>
+<div class="modal-sub">Here's what we've added recently:</div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">
+<div style="display:flex;gap:12px;align-items:flex-start;">
+<span class="material-icons" style="color:var(--green);font-size:18px;margin-top:1px;">save</span>
+<div>
+<div style="font-size:14px;font-weight:500;">Autosave</div>
+<div style="font-size:13px;color:var(--text2);">Your work is automatically saved as you type. Come back anytime and pick up where you left off.</div>
+</div>
+</div>
+<div style="display:flex;gap:12px;align-items:flex-start;">
+<span class="material-icons" style="color:var(--purple);font-size:18px;margin-top:1px;">edit</span>
+<div>
+<div style="font-size:14px;font-weight:500;">Inline question editing</div>
+<div style="font-size:13px;color:var(--text2);">Edit question title, options, type and correct answers directly in the preview panel.</div>
+</div>
+</div>
+<div style="display:flex;gap:12px;align-items:flex-start;">
+<span class="material-icons" style="color:var(--blue);font-size:18px;margin-top:1px;">add_circle</span>
+<div>
+<div style="font-size:14px;font-weight:500;">Insert questions anywhere</div>
+<div style="font-size:13px;color:var(--text2);">Click the + button between any two questions to insert a new one at that position.</div>
+</div>
+</div>
+<div style="display:flex;gap:12px;align-items:flex-start;">
+<span class="material-icons" style="color:var(--purple);font-size:18px;margin-top:1px;">tune</span>
+<div>
+<div style="font-size:14px;font-weight:500;">Per-question settings</div>
+<div style="font-size:13px;color:var(--text2);">Set custom points and required toggle on each question individually.</div>
+</div>
+</div>
+<div style="display:flex;gap:12px;align-items:flex-start;">
+<span class="material-icons" style="color:var(--green);font-size:18px;margin-top:1px;">add</span>
+<div>
+<div style="font-size:14px;font-weight:500;">Add more questions without repasting</div>
+<div style="font-size:13px;color:var(--text2);">Paste a new batch and click "Add to existing questions" to append without losing your work.</div>
+</div>
+</div>
+</div>
+<div class="modal-actions">
+<button class="mbtn-f" onclick="closeWhatsNew()">Got it</button>
+</div>
+</div>
+</div>
+
 <script>
 /* ══════════════════════════════════════════
    ★ PASTE YOUR CLIENT ID HERE
@@ -853,6 +904,7 @@ function showApp() {
   }
   sync();
   restoreDraft();
+  setTimeout(showWhatsNew, 800); // slight delay so app loads first
 }
 
 function signOut() {
@@ -1100,6 +1152,19 @@ function onDrop(e, idx) {
   dragSrcIdx = null;
   renderPreview();
   sync();
+}
+
+/* ══ WHAT'S NEW ══ */
+const WHATS_NEW_KEY = 'fb_whats_new_v1'; // bump to v2, v3 etc for future releases
+
+function showWhatsNew() {
+  if (localStorage.getItem(WHATS_NEW_KEY)) return; // already seen
+  document.getElementById('whats-new-modal').classList.add('show');
+}
+
+function closeWhatsNew() {
+  localStorage.setItem(WHATS_NEW_KEY, 'seen');
+  document.getElementById('whats-new-modal').classList.remove('show');
 }
 
 /* ══ AUTOSAVE ══ */
