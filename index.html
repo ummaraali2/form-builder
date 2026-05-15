@@ -64,7 +64,53 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 .udd-item .material-icons{font-size:18px;color:var(--text2);}
 /* ── MAIN ── */
 .main{max-width:900px;margin:0 auto;padding:28px 16px 100px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
-@media(max-width:700px){.main{grid-template-columns:1fr;}}
+@media(max-width:700px){.main{grid-template-columns:1fr;padding:12px 12px 100px;gap:12px;}}
+
+/* ── MOBILE TABS ── */
+.mobile-tabs{display:none;}
+@media(max-width:700px){
+  .mobile-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:64px;z-index:90;}
+  .mobile-tab{flex:1;padding:12px;text-align:center;font-size:13px;font-weight:500;color:var(--text2);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .mobile-tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+  .mobile-panel{display:none;}
+  .mobile-panel.active{display:block;}
+}
+
+/* ── MOBILE HEADER ── */
+@media(max-width:700px){
+  .gf-logo-text{display:none;}
+  .reset-btn-hdr span.reset-text{display:none;}
+  .reset-btn-hdr{padding:0 10px;}
+  .gen-btn-hdr{padding:0 12px;font-size:13px;}
+  .uname{display:none;}
+  .gf-header{gap:6px;padding:0 10px;}
+}
+
+/* ── MOBILE BOTTOM BAR ── */
+@media(max-width:700px){
+  .gen-bar{padding:10px 12px;flex-wrap:wrap;gap:6px;height:auto;}
+  .gen-bar-info{font-size:12px;width:100%;order:1;}
+  .gen-bar>div{order:2;}
+  #save-indicator{display:none;}
+  .gen-btn{padding:0 20px;height:38px;font-size:14px;}
+}
+
+/* ── MOBILE AUTH ── */
+@media(max-width:480px){
+  .auth-card{padding:32px 20px;}
+  .auth-title{font-size:22px;}
+}
+
+/* ── MOBILE PASTE ── */
+@media(max-width:700px){
+  .paste-area{min-height:200px;}
+}
+
+/* ── MOBILE MODAL ── */
+@media(max-width:700px){
+  .modal{padding:20px 16px;width:96%;}
+  .modal-title{font-size:17px;}
+}
 /* ── CARDS ── */
 .card{background:#fff;border-radius:8px;box-shadow:var(--shadow);margin-bottom:16px;}
 .card.top-border{border-top:6px solid var(--purple);}
@@ -266,7 +312,7 @@ Sign in with Google
 <!-- ── START OVER button in header (new) ── -->
 <button class="reset-btn-hdr" onclick="startOver()" title="Clear everything and start fresh">
 <span class="material-icons">restart_alt</span>
-Start Over
+<span class="reset-text">Start Over</span>
 </button>
 <button class="gen-btn-hdr" id="gen-top-btn" disabled onclick="generate()">Generate Form</button>
 <div class="user-chip" id="user-chip" onclick="toggleUserMenu()">
@@ -286,9 +332,15 @@ Start Over
 </div>
 </header>
 
+<!-- MOBILE TABS -->
+<div class="mobile-tabs">
+  <button class="mobile-tab active" id="tab-edit" onclick="switchTab('edit')">Edit</button>
+  <button class="mobile-tab" id="tab-preview" onclick="switchTab('preview')">Preview</button>
+</div>
+
 <div class="main">
 <!-- LEFT: settings + paste -->
-<div>
+<div class="mobile-panel active" id="panel-edit">
 <!-- Form settings -->
 <div class="card top-border">
 <div class="card-body">
@@ -403,7 +455,7 @@ Add to existing questions
 </div>
 
 <!-- RIGHT: preview -->
-<div>
+<div class="mobile-panel" id="panel-preview">
 <div class="preview-top">
 <div class="preview-label">Preview</div>
 <div class="q-badge" id="q-badge">0 questions</div>
@@ -608,6 +660,8 @@ function debounceParse() {
       renderPreview();
       sync();
       saveDraft();
+      // auto switch to preview on mobile
+      if (window.innerWidth <= 700 && S.questions.length > 0) switchTab('preview');
     } else {
       // Show pending questions count hint in bar info
       const pending = parseQuestions(raw);
@@ -1108,6 +1162,14 @@ function onDrop(e, idx) {
   renderPreview();
   sync();
   saveDraftNow();
+}
+
+/* ══ MOBILE TABS ══ */
+function switchTab(tab) {
+  document.getElementById('panel-edit').classList.toggle('active', tab === 'edit');
+  document.getElementById('panel-preview').classList.toggle('active', tab === 'preview');
+  document.getElementById('tab-edit').classList.toggle('active', tab === 'edit');
+  document.getElementById('tab-preview').classList.toggle('active', tab === 'preview');
 }
 
 /* ══ WHAT'S NEW ══ */
