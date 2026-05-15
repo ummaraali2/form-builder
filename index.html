@@ -971,7 +971,7 @@ function appendQuestions() {
   document.getElementById('paste-area').value = '';
   renderPreview();
   sync();
-  saveDraft();
+  saveDraftNow();
   toast(`${newQs.length} question${newQs.length !== 1 ? 's' : ''} added — ${S.questions.length} total.`);
 }
 
@@ -986,18 +986,18 @@ function insertQuestion(atIdx) {
   editState = JSON.parse(JSON.stringify(blank));
   renderPreview();
   sync();
-  saveDraft();
+  saveDraftNow();
 }
 
 function setQuestionPoints(idx, val) {
   const v = parseInt(val);
   S.questions[idx].points = (v && v > 0) ? v : null;
-  saveDraft();
+  saveDraftNow();
 }
 
 function setQuestionRequired(idx, checked) {
   S.questions[idx].required = checked;
-  saveDraft();
+  saveDraftNow();
 }
 
 /* ══ INLINE EDITING ══ */
@@ -1032,7 +1032,7 @@ function saveEdit(idx) {
   editState = null;
   renderPreview();
   sync();
-  saveDraft();
+  saveDraftNow();
   toast('Question saved.');
 }
 
@@ -1078,7 +1078,7 @@ function deleteQuestion(idx) {
   S.questions.splice(idx, 1);
   renderPreview();
   sync();
-  saveDraft();
+  saveDraftNow();
 }
 
 function onDragStart(e, idx) {
@@ -1107,7 +1107,7 @@ function onDrop(e, idx) {
   dragSrcIdx = null;
   renderPreview();
   sync();
-  saveDraft();
+  saveDraftNow();
 }
 
 /* ══ WHAT'S NEW ══ */
@@ -1127,27 +1127,31 @@ function closeWhatsNew() {
 const DRAFT_KEY = 'fb_draft';
 let saveTimer;
 
+function saveDraftNow() {
+  clearTimeout(saveTimer);
+  const indicator = document.getElementById('save-indicator');
+  const draft = {
+    title: document.getElementById('f-title')?.value || '',
+    desc: document.getElementById('f-desc')?.value || '',
+    pts: document.getElementById('f-pts')?.value || '',
+    isQuiz: S.isQuiz,
+    isRequired: S.isRequired,
+    questions: S.questions,
+    savedAt: new Date().toISOString()
+  };
+  if (draft.title || draft.questions.length > 0) {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (indicator) indicator.textContent = `Saved \u2022 ${time}`;
+  }
+}
+
 function saveDraft() {
   clearTimeout(saveTimer);
   const indicator = document.getElementById('save-indicator');
   if (indicator) indicator.textContent = 'Saving...';
   saveTimer = setTimeout(() => {
-    const draft = {
-      title: document.getElementById('f-title')?.value || '',
-      desc: document.getElementById('f-desc')?.value || '',
-      pts: document.getElementById('f-pts')?.value || '',
-      isQuiz: S.isQuiz,
-      isRequired: S.isRequired,
-      questions: S.questions,
-      savedAt: new Date().toISOString()
-    };
-    if (draft.title || draft.questions.length > 0) {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      if (indicator) indicator.textContent = `Saved \u2022 ${time}`;
-    } else {
-      if (indicator) indicator.textContent = '';
-    }
+    saveDraftNow();
   }, 1000);
 }
 
