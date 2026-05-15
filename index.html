@@ -746,35 +746,56 @@ window.addEventListener('load', () => {
     document.getElementById('signin-btn').disabled = true;
     return;
   }
-  // attempt silent restore if we have a saved hint
+  // initialize One Tap for returning users
   const hint = localStorage.getItem('fb_user_hint');
   if (hint) {
-    // wait for GIS script to fully load before attempting silent refresh
-    const tryRestore = () => {
+    const tryOneTap = () => {
       try {
-        initTokenClient();
-        _tokenCb = {
-          onSuccess: async () => { await loadUser(); showApp(); },
-          onError: () => { /* silently fail — show sign-in screen */ }
-        };
-        tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
-      } catch(e) { /* GIS not ready yet, user will sign in manually */ }
+        google.accounts.id.initialize({
+          client_id: CLIENT_ID,
+          callback: handleOneTapCredential,
+          auto_select: true,
+          cancel_on_tap_outside: false,
+          use_fedcm_for_prompt: true
+        });
+        google.accounts.id.prompt(notification => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // One Tap not shown — user will use sign-in button
+          }
+        });
+      } catch(e) { /* GIS not ready */ }
     };
-    if (window.google?.accounts?.oauth2) {
-      tryRestore();
+    if (window.google?.accounts?.id) {
+      tryOneTap();
     } else {
-      // GIS not loaded yet — wait for it
       const interval = setInterval(() => {
-        if (window.google?.accounts?.oauth2) {
+        if (window.google?.accounts?.id) {
           clearInterval(interval);
-          tryRestore();
+          tryOneTap();
         }
       }, 100);
-      // give up after 5 seconds
       setTimeout(() => clearInterval(interval), 5000);
     }
   }
 });
+
+async function handleOneTapCredential(response) {
+  try {
+    // decode JWT to get email
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    const email = payload.email;
+    if (email) localStorage.setItem('fb_user_hint', email);
+    // get access token silently using email hint
+    initTokenClient();
+    _tokenCb = {
+      onSuccess: async () => { await loadUser(); showApp(); },
+      onError: () => { showAuthErr('One Tap sign-in failed. Please use the sign-in button.'); }
+    };
+    tokenClient.requestAccessToken({ prompt: '', login_hint: email || '' });
+  } catch(e) {
+    showAuthErr('Sign-in failed. Please try the sign-in button.');
+  }
+}
 
 function silentRefresh(onSuccess, onFail) {
   try {
@@ -836,6 +857,7 @@ function showApp() {
 
 function signOut() {
   google.accounts.oauth2.revoke(S.token, () => {});
+  try { google.accounts.id.disableAutoSelect(); } catch(e) {}
   S.token = null; S.user = null;
   localStorage.removeItem('fb_user_hint');
   document.getElementById('app-screen').style.display = 'none';
