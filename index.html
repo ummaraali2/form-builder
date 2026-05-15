@@ -836,15 +836,22 @@ async function handleOneTapCredential(response) {
     const payload = JSON.parse(atob(response.credential.split('.')[1]));
     const email = payload.email;
     if (email) localStorage.setItem('fb_user_hint', email);
-    // get access token silently using email hint
+    // get access token using email hint
     initTokenClient();
     _tokenCb = {
       onSuccess: async () => { await loadUser(); showApp(); },
-      onError: () => { showAuthErr('One Tap sign-in failed. Please use the sign-in button.'); }
+      onError: () => {
+        // silent failed — try with consent prompt
+        _tokenCb = {
+          onSuccess: async () => { await loadUser(); showApp(); },
+          onError: () => { showAuthErr('Sign-in failed. Please use the sign-in button.'); }
+        };
+        tokenClient.requestAccessToken({ prompt: 'consent', login_hint: email || '' });
+      }
     };
     tokenClient.requestAccessToken({ prompt: '', login_hint: email || '' });
   } catch(e) {
-    showAuthErr('Sign-in failed. Please try the sign-in button.');
+    showAuthErr('Sign-in failed. Please use the sign-in button.');
   }
 }
 
