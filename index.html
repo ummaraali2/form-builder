@@ -294,11 +294,11 @@ Start Over
 <div class="card-body">
 <div class="field">
 <label>Form Title *</label>
-<input class="finp" id="f-title" type="text" placeholder="e.g. Biology Unit 3 Quiz" oninput="sync()"/>
+<input class="finp" id="f-title" type="text" placeholder="e.g. Biology Unit 3 Quiz" oninput="sync();saveDraft()"/>
 </div>
 <div class="field">
 <label>Description (optional)</label>
-<input class="finp finp-sm" id="f-desc" type="text" placeholder="Instructions for respondents"/>
+<input class="finp finp-sm" id="f-desc" type="text" placeholder="Instructions for respondents" oninput="saveDraft()"/>
 </div>
 <div class="toggle-row">
 <div>
@@ -306,7 +306,7 @@ Start Over
 <div style="font-size:12px;color:var(--text2);">Enables answer key and scoring</div>
 </div>
 <label class="mtoggle">
-<input type="checkbox" id="f-quiz" checked onchange="S.isQuiz=this.checked;renderPreview()"/>
+<input type="checkbox" id="f-quiz" checked onchange="S.isQuiz=this.checked;renderPreview();saveDraft()"/>
 <div class="mtrack"></div><div class="mthumb"></div>
 </label>
 </div>
@@ -315,7 +315,7 @@ Start Over
 <label style="font-size:14px;margin:0;">Points per question</label>
 <span class="hint">Optional — leave blank for 1 point each</span>
 </div>
-<input class="pts-inp" id="f-pts" type="number" min="1" max="999" placeholder="1" oninput="renderPreview()"/>
+<input class="pts-inp" id="f-pts" type="number" min="1" max="999" placeholder="1" oninput="renderPreview();saveDraft()"/>
 </div>
 <!-- ── REQUIRED TOGGLE ── -->
 <div class="toggle-row">
@@ -324,7 +324,7 @@ Start Over
 <div style="font-size:12px;color:var(--text2);">All questions must be answered</div>
 </div>
 <label class="mtoggle">
-<input type="checkbox" id="f-required" checked onchange="S.isRequired=this.checked;S.questions.forEach(q=>q.required=this.checked);renderPreview()"/>
+<input type="checkbox" id="f-required" checked onchange="S.isRequired=this.checked;S.questions.forEach(q=>q.required=this.checked);renderPreview();saveDraft()"/>
 <div class="mtrack"></div><div class="mthumb"></div>
 </label>
 </div>
@@ -420,6 +420,7 @@ Paste your questions on the left to see a preview.
 <div class="gen-bar">
 <div class="gen-bar-info" id="bar-info">Add a title and paste questions to get started.</div>
 <div style="display:flex;align-items:center;gap:16px;">
+<span id="save-indicator" style="font-size:12px;color:var(--text2);"></span>
 <a href="/privacy.html" style="font-size:12px;color:var(--text2);text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Privacy Policy</a>
 <button class="gen-btn" id="gen-btn" disabled onclick="generate()">
 <span class="material-icons" style="font-size:18px;">auto_awesome</span>
@@ -555,6 +556,7 @@ function debounceParse() {
       S.questions = parseQuestions(raw);
       renderPreview();
       sync();
+      saveDraft();
     } else {
       // Show pending questions count hint in bar info
       const pending = parseQuestions(raw);
@@ -829,6 +831,7 @@ function showApp() {
     if (S.user.email) localStorage.setItem('fb_user_hint', S.user.email);
   }
   sync();
+  restoreDraft();
 }
 
 function signOut() {
@@ -884,6 +887,7 @@ async function createForm() {
     document.getElementById('edit-link').textContent = S.editUrl;
     document.getElementById('open-form-a').href = S.formUrl;
     document.getElementById('success-modal').classList.add('show');
+    clearDraft();
   } catch(e) {
     document.getElementById('overlay').classList.remove('show');
     if (e.message?.includes('401')) {
@@ -943,6 +947,7 @@ function appendQuestions() {
   document.getElementById('paste-area').value = '';
   renderPreview();
   sync();
+  saveDraft();
   toast(`${newQs.length} question${newQs.length !== 1 ? 's' : ''} added — ${S.questions.length} total.`);
 }
 
@@ -1075,6 +1080,60 @@ function onDrop(e, idx) {
   sync();
 }
 
+/* ══ AUTOSAVE ══ */
+const DRAFT_KEY = 'fb_draft';
+let saveTimer;
+
+function saveDraft() {
+  clearTimeout(saveTimer);
+  const indicator = document.getElementById('save-indicator');
+  if (indicator) indicator.textContent = 'Saving...';
+  saveTimer = setTimeout(() => {
+    const draft = {
+      title: document.getElementById('f-title')?.value || '',
+      desc: document.getElementById('f-desc')?.value || '',
+      pts: document.getElementById('f-pts')?.value || '',
+      isQuiz: S.isQuiz,
+      isRequired: S.isRequired,
+      questions: S.questions,
+      savedAt: new Date().toISOString()
+    };
+    if (draft.title || draft.questions.length > 0) {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (indicator) indicator.textContent = `Saved \u2022 ${time}`;
+    } else {
+      if (indicator) indicator.textContent = '';
+    }
+  }, 1000);
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (draft.title) document.getElementById('f-title').value = draft.title;
+    if (draft.desc) document.getElementById('f-desc').value = draft.desc;
+    if (draft.pts) document.getElementById('f-pts').value = draft.pts;
+    if (draft.isQuiz !== undefined) { S.isQuiz = draft.isQuiz; document.getElementById('f-quiz').checked = draft.isQuiz; }
+    if (draft.isRequired !== undefined) { S.isRequired = draft.isRequired; document.getElementById('f-required').checked = draft.isRequired; }
+    if (draft.questions?.length > 0) { S.questions = draft.questions; }
+    renderPreview();
+    sync();
+    const time = new Date(draft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const indicator = document.getElementById('save-indicator');
+    if (indicator) indicator.textContent = `Saved \u2022 ${time}`;
+    toast('Draft restored.');
+  } catch(e) { localStorage.removeItem(DRAFT_KEY); }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+  const indicator = document.getElementById('save-indicator');
+  if (indicator) indicator.textContent = '';
+}
+
 /* ══ UTILS ══ */
 function startOver() {
   document.getElementById('f-title').value = '';
@@ -1085,6 +1144,7 @@ function startOver() {
   document.getElementById('f-required').checked = true;
   S.isQuiz = true; S.isRequired = true; S.editingIdx = null; S.questions = []; S.formUrl = ''; S.editUrl = '';
   editState = null;
+  clearDraft();
   renderPreview(); sync();
 }
 
