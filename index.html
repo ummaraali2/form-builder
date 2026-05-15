@@ -986,15 +986,18 @@ function insertQuestion(atIdx) {
   editState = JSON.parse(JSON.stringify(blank));
   renderPreview();
   sync();
+  saveDraft();
 }
 
 function setQuestionPoints(idx, val) {
   const v = parseInt(val);
   S.questions[idx].points = (v && v > 0) ? v : null;
+  saveDraft();
 }
 
 function setQuestionRequired(idx, checked) {
   S.questions[idx].required = checked;
+  saveDraft();
 }
 
 /* ══ INLINE EDITING ══ */
@@ -1029,6 +1032,7 @@ function saveEdit(idx) {
   editState = null;
   renderPreview();
   sync();
+  saveDraft();
   toast('Question saved.');
 }
 
@@ -1074,6 +1078,7 @@ function deleteQuestion(idx) {
   S.questions.splice(idx, 1);
   renderPreview();
   sync();
+  saveDraft();
 }
 
 function onDragStart(e, idx) {
@@ -1102,6 +1107,7 @@ function onDrop(e, idx) {
   dragSrcIdx = null;
   renderPreview();
   sync();
+  saveDraft();
 }
 
 /* ══ WHAT'S NEW ══ */
