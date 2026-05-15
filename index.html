@@ -797,63 +797,7 @@ window.addEventListener('load', () => {
     document.getElementById('signin-btn').disabled = true;
     return;
   }
-  // initialize One Tap for returning users
-  const hint = localStorage.getItem('fb_user_hint');
-  if (hint) {
-    const tryOneTap = () => {
-      try {
-        google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: handleOneTapCredential,
-          auto_select: true,
-          cancel_on_tap_outside: false,
-          use_fedcm_for_prompt: true
-        });
-        google.accounts.id.prompt(notification => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // One Tap not shown — user will use sign-in button
-          }
-        });
-      } catch(e) { /* GIS not ready */ }
-    };
-    if (window.google?.accounts?.id) {
-      tryOneTap();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          clearInterval(interval);
-          tryOneTap();
-        }
-      }, 100);
-      setTimeout(() => clearInterval(interval), 5000);
-    }
-  }
 });
-
-async function handleOneTapCredential(response) {
-  try {
-    // decode JWT to get email
-    const payload = JSON.parse(atob(response.credential.split('.')[1]));
-    const email = payload.email;
-    if (email) localStorage.setItem('fb_user_hint', email);
-    // get access token using email hint
-    initTokenClient();
-    _tokenCb = {
-      onSuccess: async () => { await loadUser(); showApp(); },
-      onError: () => {
-        // silent failed — try with consent prompt
-        _tokenCb = {
-          onSuccess: async () => { await loadUser(); showApp(); },
-          onError: () => { showAuthErr('Sign-in failed. Please use the sign-in button.'); }
-        };
-        tokenClient.requestAccessToken({ prompt: 'consent', login_hint: email || '' });
-      }
-    };
-    tokenClient.requestAccessToken({ prompt: '', login_hint: email || '' });
-  } catch(e) {
-    showAuthErr('Sign-in failed. Please use the sign-in button.');
-  }
-}
 
 function silentRefresh(onSuccess, onFail) {
   try {
@@ -916,7 +860,6 @@ function showApp() {
 
 function signOut() {
   google.accounts.oauth2.revoke(S.token, () => {});
-  try { google.accounts.id.disableAutoSelect(); } catch(e) {}
   S.token = null; S.user = null;
   localStorage.removeItem('fb_user_hint');
   document.getElementById('app-screen').style.display = 'none';
