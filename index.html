@@ -595,10 +595,18 @@ function parseQuestions(raw) {
     if (!lines.length) continue;
     let qText = lines[0].replace(/^\s*(?:Q\d+[.:)]\s*|\d+[.)]\s*)/i, '').trim();
     if (!qText) continue;
+    // collect multi-line question text until first option or answer line
+    let lineStart = 1;
+    while (lineStart < lines.length) {
+      const line = lines[lineStart];
+      if (/^([a-zA-Z]|\d+)[.)]\s*/.test(line) || /^(?:answer|ans|key)\s*[:.]/i.test(line)) break;
+      qText += ' ' + line.trim();
+      lineStart++;
+    }
     const options = [];
     const correctIdx = [];
     let answerLine = '';
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = lineStart; i < lines.length; i++) {
       const line = lines[i];
       if (/^(?:answer|ans|key)\s*[:.]/i.test(line)) {
         answerLine = line.replace(/^(?:answer|ans|key)\s*[:.]\s*/i, '').trim();
