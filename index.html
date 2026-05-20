@@ -661,7 +661,6 @@ function parseQuestions(raw) {
     const answerText = type === 'SHORT_ANSWER' ? answerLine : '';
     const warnings = [];
     if (type !== 'SHORT_ANSWER' && correctIdx.length === 0) warnings.push('No correct answer marked');
-    if (type === 'SHORT_ANSWER' && !answerText) warnings.push('No answer provided');
     if (options.length > 20) warnings.push('Too many options — Google Forms allows a maximum of 20');
     questions.push({ id: id++, type, isTrueFalse, title: qText, required: true, points: null, options, correct: correctIdx, answerText, warnings });
   }
@@ -783,7 +782,7 @@ function renderPreview() {
     const footerHtml = `<div class="pq-footer">
       <div class="pq-footer-item">
         <span class="pq-footer-label">Points</span>
-        <input type="number" class="pq-pts-inp" value="${q.points !== null ? q.points : ''}" placeholder="${pts}" min="1" max="999" oninput="setQuestionPoints(${i},this.value)" title="Override global points for this question"/>
+        <input type="number" class="pq-pts-inp" value="${q.points !== null ? q.points : ''}" placeholder="${pts}" min="0" max="999" oninput="setQuestionPoints(${i},this.value)" title="Override global points for this question"/>
       </div>
       <div class="pq-footer-item">
         <span class="pq-footer-label">Required</span>
@@ -1003,7 +1002,7 @@ async function createForm() {
 }
 
 function buildItem(q, index, globalPts) {
-  const pts = q.points || globalPts;
+  const pts = (q.points !== null && q.points !== undefined) ? q.points : globalPts;
   const qDef = { required: q.required };
   if (q.type === 'SHORT_ANSWER') {
     qDef.textQuestion = { paragraph: false };
@@ -1066,7 +1065,7 @@ function insertQuestion(atIdx) {
 
 function setQuestionPoints(idx, val) {
   const v = parseInt(val);
-  S.questions[idx].points = (v && v > 0) ? v : null;
+  S.questions[idx].points = (!isNaN(v) && v >= 0) ? v : null;
   saveDraftNow();
 }
 
@@ -1100,7 +1099,6 @@ function saveEdit(idx) {
   // recalculate warnings
   editState.warnings = [];
   if (editState.type !== 'SHORT_ANSWER' && editState.correct.length === 0) editState.warnings.push('No correct answer marked');
-  if (editState.type === 'SHORT_ANSWER' && !editState.answerText) editState.warnings.push('No answer provided');
   if (editState.options.length > 20) editState.warnings.push('Too many options — Google Forms allows a maximum of 20');
   S.questions[idx] = editState;
   S.editingIdx = null;
