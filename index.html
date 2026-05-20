@@ -584,9 +584,19 @@ const SCOPES = [
 const S = { token: null, user: null, isQuiz: true, isRequired: true, editingIdx: null, questions: [], formUrl: '', editUrl: '' };
 let editState = null;
 
+function preprocessRaw(raw) {
+  return raw
+    .split('\n')
+    .filter(line => !/^-{2,}$/.test(line.trim())) // remove --- separators
+    .join('\n')
+    .replace(/(\d+[.)]\s*)\n[\s\n]+/g, '$1 ') // join "2.\n\nText" into "2. Text"
+    .replace(/\n{3,}/g, '\n\n'); // collapse excess blank lines
+}
+
 /* ══ PARSER ══ */
 function parseQuestions(raw) {
   if (!raw.trim()) return [];
+  raw = preprocessRaw(raw);
   const questions = [];
   let id = 1;
   const blocks = raw.split(/\n(?=\s*(?:\d+[.)]\s|Q\d+[.:)]\s))/i);
@@ -594,7 +604,10 @@ function parseQuestions(raw) {
     const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
     let qText = lines[0].replace(/^\s*(?:Q\d+[.:)]\s*|\d+[.)]\s*)/i, '').trim();
-    if (!qText) continue;
+    if (!qText) {
+      // line was just a number like "2." with no text — skip, already handled by preprocessRaw
+      continue;
+    }
     // collect multi-line question text until first option or answer line
     let lineStart = 1;
     while (lineStart < lines.length) {
