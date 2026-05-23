@@ -310,7 +310,7 @@ Sign in with Google
 </div>
 <div style="display:flex;align-items:center;gap:8px;">
 <!-- ── START OVER button in header (new) ── -->
-<button class="reset-btn-hdr" onclick="startOver()" title="Clear everything and start fresh">
+<button class="reset-btn-hdr" onclick="showStartOver()" title="Clear everything and start fresh">
 <span class="material-icons">restart_alt</span>
 <span class="reset-text">Start Over</span>
 </button>
@@ -516,6 +516,21 @@ Generate Form
 
 <div id="toast"></div>
 
+<!-- START OVER CONFIRMATION MODAL -->
+<div class="modal-bd" id="startover-modal">
+<div class="modal" style="max-width:420px;">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+<span class="material-icons" style="color:var(--red);font-size:32px;">warning</span>
+<div class="modal-title" style="margin:0;">Start Over?</div>
+</div>
+<div class="modal-sub">This will clear your form title, description, settings and all questions. This cannot be undone.</div>
+<div class="modal-actions">
+<button class="mbtn-t" onclick="closeStartOver()">Cancel</button>
+<button class="mbtn-f" style="background:var(--red);" onclick="confirmStartOver()">Start Over</button>
+</div>
+</div>
+</div>
+
 <!-- WHAT'S NEW MODAL -->
 <div class="modal-bd" id="whats-new-modal">
 <div class="modal" style="max-width:480px;">
@@ -631,10 +646,13 @@ function parseQuestions(raw) {
         let correct = false;
         if (/[✓✔]/.test(optText) || /\*\s*$/.test(optText) || /\(correct\)/i.test(optText)) {
           correct = true;
-          optText = optText.replace(/[✓✔*]/g, '').replace(/\(correct\)/ig, '').trim();
+          optText = optText.replace(/[✓✔]/g, '').replace(/\*\s*$/, '').replace(/\(correct\)/ig, '').trim();
         }
         if (correct) correctIdx.push(options.length);
         options.push(optText);
+      } else if (/^\*\s/.test(line)) {
+        // bullet point line — treat as question body continuation
+        qText += ' ' + line.replace(/^\*\s*/, '').trim();
       }
     }
     if (answerLine && options.length > 0 && correctIdx.length === 0) {
@@ -661,7 +679,6 @@ function parseQuestions(raw) {
     const answerText = type === 'SHORT_ANSWER' ? answerLine : '';
     const warnings = [];
     if (type !== 'SHORT_ANSWER' && correctIdx.length === 0) warnings.push('No correct answer marked');
-    if (type === 'SHORT_ANSWER' && !answerText) warnings.push('No answer provided');
     if (options.length > 20) warnings.push('Too many options — Google Forms allows a maximum of 20');
     questions.push({ id: id++, type, isTrueFalse, title: qText, required: true, points: null, options, correct: correctIdx, answerText, warnings });
   }
@@ -783,7 +800,7 @@ function renderPreview() {
     const footerHtml = `<div class="pq-footer">
       <div class="pq-footer-item">
         <span class="pq-footer-label">Points</span>
-        <input type="number" class="pq-pts-inp" value="${q.points !== null ? q.points : ''}" placeholder="${pts}" min="1" max="999" oninput="setQuestionPoints(${i},this.value)" title="Override global points for this question"/>
+        <input type="number" class="pq-pts-inp" value="${q.points !== null ? q.points : ''}" placeholder="${pts}" min="0" max="999" oninput="setQuestionPoints(${i},this.value)" title="Override global points for this question"/>
       </div>
       <div class="pq-footer-item">
         <span class="pq-footer-label">Required</span>
@@ -1003,7 +1020,7 @@ async function createForm() {
 }
 
 function buildItem(q, index, globalPts) {
-  const pts = q.points || globalPts;
+  const pts = (q.points !== null && q.points !== undefined) ? q.points : globalPts;
   const qDef = { required: q.required };
   if (q.type === 'SHORT_ANSWER') {
     qDef.textQuestion = { paragraph: false };
@@ -1066,7 +1083,7 @@ function insertQuestion(atIdx) {
 
 function setQuestionPoints(idx, val) {
   const v = parseInt(val);
-  S.questions[idx].points = (v && v > 0) ? v : null;
+  S.questions[idx].points = (!isNaN(v) && v >= 0) ? v : null;
   saveDraftNow();
 }
 
@@ -1100,7 +1117,6 @@ function saveEdit(idx) {
   // recalculate warnings
   editState.warnings = [];
   if (editState.type !== 'SHORT_ANSWER' && editState.correct.length === 0) editState.warnings.push('No correct answer marked');
-  if (editState.type === 'SHORT_ANSWER' && !editState.answerText) editState.warnings.push('No answer provided');
   if (editState.options.length > 20) editState.warnings.push('Too many options — Google Forms allows a maximum of 20');
   S.questions[idx] = editState;
   S.editingIdx = null;
@@ -1264,6 +1280,23 @@ function clearDraft() {
   if (indicator) indicator.textContent = '';
 }
 
+function showStartOver() {
+  // if nothing to lose, just start over directly
+  if (!S.questions.length && !document.getElementById('f-title').value.trim()) {
+    startOver(); return;
+  }
+  document.getElementById('startover-modal').classList.add('show');
+}
+
+function closeStartOver() {
+  document.getElementById('startover-modal').classList.remove('show');
+}
+
+function confirmStartOver() {
+  closeStartOver();
+  startOver();
+}
+
 /* ══ UTILS ══ */
 function startOver() {
   document.getElementById('f-title').value = '';
@@ -1280,6 +1313,7 @@ function startOver() {
 
 function closeSuccess() { document.getElementById('success-modal').classList.remove('show'); }
 document.getElementById('success-modal').addEventListener('click', function(e) { if (e.target === this) closeSuccess(); });
+document.getElementById('startover-modal').addEventListener('click', function(e) { if (e.target === this) closeStartOver(); });
 
 let _tt;
 function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 4000); }
