@@ -310,7 +310,7 @@ Sign in with Google
 </div>
 <div style="display:flex;align-items:center;gap:8px;">
 <!-- ── START OVER button in header (new) ── -->
-<button class="reset-btn-hdr" onclick="startOver()" title="Clear everything and start fresh">
+<button class="reset-btn-hdr" onclick="showStartOver()" title="Clear everything and start fresh">
 <span class="material-icons">restart_alt</span>
 <span class="reset-text">Start Over</span>
 </button>
@@ -516,6 +516,21 @@ Generate Form
 
 <div id="toast"></div>
 
+<!-- START OVER CONFIRMATION MODAL -->
+<div class="modal-bd" id="startover-modal">
+<div class="modal" style="max-width:420px;">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+<span class="material-icons" style="color:var(--red);font-size:32px;">warning</span>
+<div class="modal-title" style="margin:0;">Start Over?</div>
+</div>
+<div class="modal-sub">This will clear your form title, description, settings and all questions. This cannot be undone.</div>
+<div class="modal-actions">
+<button class="mbtn-t" onclick="closeStartOver()">Cancel</button>
+<button class="mbtn-f" style="background:var(--red);" onclick="confirmStartOver()">Start Over</button>
+</div>
+</div>
+</div>
+
 <!-- WHAT'S NEW MODAL -->
 <div class="modal-bd" id="whats-new-modal">
 <div class="modal" style="max-width:480px;">
@@ -631,10 +646,13 @@ function parseQuestions(raw) {
         let correct = false;
         if (/[✓✔]/.test(optText) || /\*\s*$/.test(optText) || /\(correct\)/i.test(optText)) {
           correct = true;
-          optText = optText.replace(/[✓✔*]/g, '').replace(/\(correct\)/ig, '').trim();
+          optText = optText.replace(/[✓✔]/g, '').replace(/\*\s*$/, '').replace(/\(correct\)/ig, '').trim();
         }
         if (correct) correctIdx.push(options.length);
         options.push(optText);
+      } else if (/^\*\s/.test(line)) {
+        // bullet point line — treat as question body continuation
+        qText += ' ' + line.replace(/^\*\s*/, '').trim();
       }
     }
     if (answerLine && options.length > 0 && correctIdx.length === 0) {
@@ -1262,6 +1280,23 @@ function clearDraft() {
   if (indicator) indicator.textContent = '';
 }
 
+function showStartOver() {
+  // if nothing to lose, just start over directly
+  if (!S.questions.length && !document.getElementById('f-title').value.trim()) {
+    startOver(); return;
+  }
+  document.getElementById('startover-modal').classList.add('show');
+}
+
+function closeStartOver() {
+  document.getElementById('startover-modal').classList.remove('show');
+}
+
+function confirmStartOver() {
+  closeStartOver();
+  startOver();
+}
+
 /* ══ UTILS ══ */
 function startOver() {
   document.getElementById('f-title').value = '';
@@ -1278,6 +1313,7 @@ function startOver() {
 
 function closeSuccess() { document.getElementById('success-modal').classList.remove('show'); }
 document.getElementById('success-modal').addEventListener('click', function(e) { if (e.target === this) closeSuccess(); });
+document.getElementById('startover-modal').addEventListener('click', function(e) { if (e.target === this) closeStartOver(); });
 
 let _tt;
 function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 4000); }
