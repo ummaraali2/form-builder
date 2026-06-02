@@ -2,8 +2,7 @@
 
 A web app that lets you paste questions with answer keys and instantly generate a Google Form. Just sign in with Google and go.
 
-**Live app:** https://form-builder-three-gules.vercel.app
-Since this app is in testing mode - you may see a warning before proceeding with the link. Please click on advanced and continue with the link.
+**Live app:** https://gformbuild.vercel.app/
 
 ---
 
