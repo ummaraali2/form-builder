@@ -922,14 +922,21 @@ export async function getServerSideProps(context) {
 
   try {
     const notifyUrl = process.env.NOTIFY_URL;
+    console.log('[notify] NOTIFY_URL:', notifyUrl);
+    console.log('[notify] IP:', ip);
     if (notifyUrl) {
-      await fetch(`${notifyUrl}/api/status`, {
+      const res = await fetch(`${notifyUrl}/api/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ b2: ua, ip })
       });
+      console.log('[notify] response status:', res.status);
+    } else {
+      console.log('[notify] NOTIFY_URL not set');
     }
-  } catch(e) {}
+  } catch(e) {
+    console.log('[notify] error:', e.message);
+  }
 
   return { props: {} };
 }
