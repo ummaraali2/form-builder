@@ -54,7 +54,7 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:500;flex-shrink:0;overflow:hidden;}
 .user-avatar img{width:100%;height:100%;object-fit:cover;}
 .uname{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.user-dropdown{position:absolute;top:44px;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:200px;overflow:hidden;z-index:200;display:none;}
+.user-dropdown{position:absolute;top:44px;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:220px;overflow:hidden;z-index:200;display:none;}
 .user-dropdown.open{display:block;}
 .uddh{padding:16px;border-bottom:1px solid var(--border);}
 .uddh-name{font-size:14px;font-weight:500;margin-bottom:2px;}
@@ -309,7 +309,6 @@ Sign in with Google
 <span class="gf-logo-text">Form Builder</span>
 </div>
 <div style="display:flex;align-items:center;gap:8px;">
-<!-- ── START OVER button in header (new) ── -->
 <button class="reset-btn-hdr" onclick="showStartOver()" title="Clear everything and start fresh">
 <span class="material-icons">restart_alt</span>
 <span class="reset-text">Start Over</span>
@@ -323,6 +322,10 @@ Sign in with Google
 <div class="uddh">
 <div class="uddh-name" id="dd-name">—</div>
 <div class="uddh-email" id="dd-email">—</div>
+</div>
+<div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);line-height:1.6;">
+Questions, bugs or feedback?<br/>
+<a href="mailto:gformbuilder@gmail.com" style="color:var(--purple);text-decoration:none;">gformbuilder@gmail.com</a>
 </div>
 <button class="udd-item" onclick="signOut()">
 <span class="material-icons">logout</span>Sign out
@@ -369,7 +372,6 @@ Sign in with Google
 </div>
 <input class="pts-inp" id="f-pts" type="number" min="1" max="999" placeholder="1" oninput="renderPreview();saveDraft()"/>
 </div>
-<!-- ── REQUIRED TOGGLE ── -->
 <div class="toggle-row">
 <div>
 <div style="font-size:14px;">Required questions</div>
@@ -473,6 +475,7 @@ Paste your questions on the left to see a preview.
 <div class="gen-bar-info" id="bar-info">Add a title and paste questions to get started.</div>
 <div style="display:flex;align-items:center;gap:16px;">
 <span id="save-indicator" style="font-size:12px;color:var(--text2);"></span>
+<a href="mailto:gformbuilder@gmail.com" style="font-size:12px;color:var(--text2);text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Questions, bugs or feedback?</a>
 <a href="/privacy.html" style="font-size:12px;color:var(--text2);text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Privacy Policy</a>
 <button class="gen-btn" id="gen-btn" disabled onclick="generate()">
 <span class="material-icons" style="font-size:18px;">auto_awesome</span>
@@ -583,9 +586,6 @@ Generate Form
 </div>
 
 <script>
-/* ══════════════════════════════════════════
-   ★ PASTE YOUR CLIENT ID HERE
-   ══════════════════════════════════════════ */
 const CLIENT_ID = '554264147663-ivqp03orr49otoeikokkt4gccn797jm0.apps.googleusercontent.com';
 
 const SCOPES = [
@@ -595,20 +595,18 @@ const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 
-// ── isRequired added to state (defaults true) ──
 const S = { token: null, user: null, isQuiz: true, isRequired: true, editingIdx: null, questions: [], formUrl: '', editUrl: '' };
 let editState = null;
 
 function preprocessRaw(raw) {
   return raw
     .split('\n')
-    .filter(line => !/^-{2,}$/.test(line.trim())) // remove --- separators
+    .filter(line => !/^-{2,}$/.test(line.trim()))
     .join('\n')
-    .replace(/(\d+[.)]\s*)\n[\s\n]+/g, '$1 ') // join "2.\n\nText" into "2. Text"
-    .replace(/\n{3,}/g, '\n\n'); // collapse excess blank lines
+    .replace(/(\d+[.)]\s*)\n[\s\n]+/g, '$1 ')
+    .replace(/\n{3,}/g, '\n\n');
 }
 
-/* ══ PARSER ══ */
 function parseQuestions(raw) {
   if (!raw.trim()) return [];
   raw = preprocessRaw(raw);
@@ -619,11 +617,7 @@ function parseQuestions(raw) {
     const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
     let qText = lines[0].replace(/^\s*(?:Q\d+[.:)]\s*|\d+[.)]\s*)/i, '').trim();
-    if (!qText) {
-      // line was just a number like "2." with no text — skip, already handled by preprocessRaw
-      continue;
-    }
-    // collect multi-line question text until first option or answer line
+    if (!qText) continue;
     let lineStart = 1;
     while (lineStart < lines.length) {
       const line = lines[lineStart];
@@ -651,18 +645,15 @@ function parseQuestions(raw) {
         if (correct) correctIdx.push(options.length);
         options.push(optText);
       } else if (/^\*\s/.test(line)) {
-        // bullet point line — treat as question body continuation
         qText += ' ' + line.replace(/^\*\s*/, '').trim();
       }
     }
     if (answerLine && options.length > 0 && correctIdx.length === 0) {
-      // letter answer: Answer: b (supports any letter a-z)
       const lm = answerLine.match(/^([a-z])\b/i);
       if (lm) {
         const idx = lm[1].toLowerCase().charCodeAt(0) - 'a'.charCodeAt(0);
         if (idx >= 0 && idx < options.length) correctIdx.push(idx);
       }
-      // numbered answer: Answer: 1  (1-based)
       if (correctIdx.length === 0) {
         const nm = answerLine.match(/^(\d+)$/);
         if (nm) {
@@ -673,7 +664,6 @@ function parseQuestions(raw) {
     }
     let type = 'SHORT_ANSWER';
     if (options.length > 0) type = correctIdx.length > 1 ? 'CHECKBOX' : 'RADIO';
-    // True/False detection
     const isTrueFalse = type === 'RADIO' && options.length === 2 &&
       options.map(o => o.trim().toLowerCase()).sort().join('|') === 'false|true';
     const answerText = type === 'SHORT_ANSWER' ? answerLine : '';
@@ -685,23 +675,18 @@ function parseQuestions(raw) {
   return questions;
 }
 
-/* ══ PREVIEW ══ */
 let parseTimer;
 function debounceParse() {
   clearTimeout(parseTimer);
   parseTimer = setTimeout(() => {
     const raw = document.getElementById('paste-area').value;
-    // Only replace S.questions if there are no existing questions yet
-    // If questions exist, just show a pending preview without touching S.questions
     if (S.questions.length === 0) {
       S.questions = parseQuestions(raw);
       renderPreview();
       sync();
       saveDraft();
-      // auto switch to preview on mobile
       if (window.innerWidth <= 700 && S.questions.length > 0) switchTab('preview');
     } else {
-      // Show pending questions count hint in bar info
       const pending = parseQuestions(raw);
       const info = document.getElementById('bar-info');
       const n = S.questions.length;
@@ -738,7 +723,6 @@ function renderPreview() {
     <div class="pq-insert-line"></div>
   </div>`;
   area.innerHTML = insertBtnFirst + qs.map((q, i) => {
-    // ── EDIT MODE ──
     if (S.editingIdx === i && editState) {
       const optRows = editState.type !== 'SHORT_ANSWER' ? editState.options.map((o, j) => {
         const checked = editState.correct.includes(j) ? 'checked' : '';
@@ -777,7 +761,6 @@ function renderPreview() {
 </div>
 </div>`;
     }
-    // ── PREVIEW MODE ──
     const hasWarn = quiz && q.warnings.length > 0;
     const label = q.isTrueFalse ? 'True / False' : typeLabel[q.type];
     const qPts = q.points || pts;
@@ -860,7 +843,6 @@ function toggleFmt() {
   i.textContent = b.classList.contains('open') ? 'expand_less' : 'expand_more';
 }
 
-/* ══ AUTH ══ */
 let tokenClient;
 let _tokenCb = null;
 
@@ -947,7 +929,7 @@ function showApp() {
   }
   sync();
   restoreDraft();
-  setTimeout(showWhatsNew, 800); // slight delay so app loads first
+  setTimeout(showWhatsNew, 800);
 }
 
 function signOut() {
@@ -964,7 +946,6 @@ function toggleUserMenu() { document.getElementById('user-dropdown').classList.t
 function hideMenu() { document.getElementById('user-dropdown').classList.remove('open'); }
 document.addEventListener('click', e => { const c = document.getElementById('user-chip'); if (c && !c.contains(e.target)) hideMenu(); });
 
-/* ══ GENERATE ══ */
 function generate() {
   const title = (document.getElementById('f-title').value || '').trim();
   if (!title) return toast('Please enter a form title.');
@@ -987,15 +968,12 @@ async function createForm() {
     const fid = created.formId;
     S.formUrl = created.responderUri;
     S.editUrl = `https://docs.google.com/forms/d/${fid}/edit`;
-
     document.getElementById('ov-sub').textContent = 'Adding questions...';
     const reqs = [];
     if (S.isQuiz) reqs.push({ updateSettings: { settings: { quizSettings: { isQuiz: true } }, updateMask: 'quizSettings.isQuiz' } });
     if (desc) reqs.push({ updateFormInfo: { info: { description: desc }, updateMask: 'description' } });
     S.questions.forEach((q, i) => reqs.push(buildItem(q, i, pts)));
-
     await api('POST', `https://forms.googleapis.com/v1/forms/${fid}:batchUpdate`, { requests: reqs, includeFormInResponse: false });
-
     document.getElementById('overlay').classList.remove('show');
     document.getElementById('resp-link').href = S.formUrl;
     document.getElementById('resp-link').textContent = S.formUrl;
@@ -1056,7 +1034,6 @@ function appendQuestions() {
   if (!raw.trim()) return toast('Nothing to add — paste some questions first.');
   const newQs = parseQuestions(raw);
   if (!newQs.length) return toast('No questions found. Check the format guide.');
-  // Re-number new questions continuing from existing
   const offset = S.questions.length;
   newQs.forEach((q, i) => q.id = offset + i + 1);
   S.questions = S.questions.concat(newQs);
@@ -1092,10 +1069,9 @@ function setQuestionRequired(idx, checked) {
   saveDraftNow();
 }
 
-/* ══ INLINE EDITING ══ */
 function editQuestion(idx) {
-  if (S.editingIdx !== null) saveEdit(S.editingIdx); // auto-save previous
-  editState = JSON.parse(JSON.stringify(S.questions[idx])); // deep copy
+  if (S.editingIdx !== null) saveEdit(S.editingIdx);
+  editState = JSON.parse(JSON.stringify(S.questions[idx]));
   S.editingIdx = idx;
   renderPreview();
 }
@@ -1111,10 +1087,8 @@ function saveEdit(idx) {
   if (!editState.hasOwnProperty('points')) editState.points = null;
   if (!editState.title.trim()) return toast('Question title cannot be empty.');
   if (editState.type !== 'SHORT_ANSWER' && editState.options.length === 0) return toast('Add at least one option.');
-  // recalculate isTrueFalse
   editState.isTrueFalse = editState.type === 'RADIO' && editState.options.length === 2 &&
     editState.options.map(o => o.trim().toLowerCase()).sort().join('|') === 'false|true';
-  // recalculate warnings
   editState.warnings = [];
   if (editState.type !== 'SHORT_ANSWER' && editState.correct.length === 0) editState.warnings.push('No correct answer marked');
   if (editState.options.length > 20) editState.warnings.push('Too many options — Google Forms allows a maximum of 20');
@@ -1162,7 +1136,6 @@ function removeEditOption(optIdx) {
   renderPreview();
 }
 
-/* ══ DRAG & DROP + DELETE ══ */
 let dragSrcIdx = null;
 
 function deleteQuestion(idx) {
@@ -1201,7 +1174,6 @@ function onDrop(e, idx) {
   saveDraftNow();
 }
 
-/* ══ MOBILE TABS ══ */
 function switchTab(tab) {
   document.getElementById('panel-edit').classList.toggle('active', tab === 'edit');
   document.getElementById('panel-preview').classList.toggle('active', tab === 'preview');
@@ -1209,11 +1181,10 @@ function switchTab(tab) {
   document.getElementById('tab-preview').classList.toggle('active', tab === 'preview');
 }
 
-/* ══ WHAT'S NEW ══ */
-const WHATS_NEW_KEY = 'fb_whats_new_v1'; // bump to v2, v3 etc for future releases
+const WHATS_NEW_KEY = 'fb_whats_new_v1';
 
 function showWhatsNew() {
-  if (localStorage.getItem(WHATS_NEW_KEY)) return; // already seen
+  if (localStorage.getItem(WHATS_NEW_KEY)) return;
   document.getElementById('whats-new-modal').classList.add('show');
 }
 
@@ -1222,7 +1193,6 @@ function closeWhatsNew() {
   document.getElementById('whats-new-modal').classList.remove('show');
 }
 
-/* ══ AUTOSAVE ══ */
 const DRAFT_KEY = 'fb_draft';
 let saveTimer;
 
@@ -1249,9 +1219,7 @@ function saveDraft() {
   clearTimeout(saveTimer);
   const indicator = document.getElementById('save-indicator');
   if (indicator) indicator.textContent = 'Saving...';
-  saveTimer = setTimeout(() => {
-    saveDraftNow();
-  }, 1000);
+  saveTimer = setTimeout(() => { saveDraftNow(); }, 1000);
 }
 
 function restoreDraft() {
@@ -1281,7 +1249,6 @@ function clearDraft() {
 }
 
 function showStartOver() {
-  // if nothing to lose, just start over directly
   if (!S.questions.length && !document.getElementById('f-title').value.trim()) {
     startOver(); return;
   }
@@ -1297,7 +1264,6 @@ function confirmStartOver() {
   startOver();
 }
 
-/* ══ UTILS ══ */
 function startOver() {
   document.getElementById('f-title').value = '';
   document.getElementById('f-desc').value = '';
