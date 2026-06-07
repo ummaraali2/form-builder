@@ -1,6 +1,6 @@
 # Form Builder
 
-A web app that lets you paste questions with answer keys and instantly generate a Google Form. Just sign in with Google and go.
+A web app that lets you paste questions with options & answer keys and instantly generate a Google Form. Just sign in with Google and go.
 
 **Live app:** https://gformbuild.vercel.app/
 
